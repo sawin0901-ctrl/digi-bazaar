@@ -73,6 +73,12 @@ export const products: Product[] = [
     detailsUrl: "https://plati.market/itm/672298?ai=1022102",
     buyUrl: "https://www.oplata.info/asp2/pay_wm.asp?id_d=672298&ai=1022102&_ow=0",
     digisellerId: "672298",
+    variantLabel: "Сумма на карте (моментальная доставка)",
+    variants: [
+      "2$ (USD)","3$ (USD)","4$ (USD)","5$ (USD)","6$ (USD)","7$ (USD)","8$ (USD)","9$ (USD)","10$ (USD)",
+      "15$ (USD)","20$ (USD)","25$ (USD)","30$ (USD)","40$ (USD)","50$ (USD)","60$ (USD)","70$ (USD)","80$ (USD)","90$ (USD)",
+      "100$ (USD)","150$ (USD)","200$ (USD)","250$ (USD)","300$ (USD)","400$ (USD)","500$ (USD)","600$ (USD)","800$ (USD)","1000$ (USD)"
+    ],
   },
 ];
 
