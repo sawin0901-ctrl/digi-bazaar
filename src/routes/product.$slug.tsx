@@ -4,6 +4,7 @@ import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { getProduct, products } from "@/lib/marketplace/data";
 import { Star, ShieldCheck, Zap, BadgeCheck, ShoppingBasket, Check, ChevronRight } from "lucide-react";
+import { useUsdRub, parseUsdAmount } from "@/hooks/use-usd-rub";
 
 export const Route = createFileRoute("/product/$slug")({
   loader: ({ params }) => {
@@ -47,6 +48,12 @@ function ProductPage() {
   const [agreed, setAgreed] = useState(false);
   const canBuy = (!product.variants || !!variant) && (!product.variants || agreed);
   const buyHref = product.buyUrl ?? "#";
+
+  const { rate, loading: rateLoading } = useUsdRub();
+  const usd = parseUsdAmount(variant);
+  const dynamicPrice =
+    usd != null && rate != null ? Math.ceil(usd * rate) : null;
+  const displayPrice = dynamicPrice ?? product.price;
   return (
     <Layout>
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
@@ -134,9 +141,27 @@ function ProductPage() {
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-3xl border border-border bg-card p-6 shadow-lg shadow-black/5">
               <div className="flex items-end gap-3">
-                <div className="text-4xl font-extrabold tracking-tight">{product.price.toLocaleString("ru-RU")} ₽</div>
-                {product.oldPrice && <div className="pb-1 text-base text-muted-foreground line-through">{product.oldPrice.toLocaleString("ru-RU")} ₽</div>}
+                <div className="text-4xl font-extrabold tracking-tight">
+                  {displayPrice.toLocaleString("ru-RU")} ₽
+                </div>
+                {product.oldPrice && !dynamicPrice && (
+                  <div className="pb-1 text-base text-muted-foreground line-through">
+                    {product.oldPrice.toLocaleString("ru-RU")} ₽
+                  </div>
+                )}
               </div>
+              {usd != null && (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {usd}$ ·{" "}
+                  {rate ? (
+                    <>по курсу ЦБ РФ <b className="text-foreground">{rate.toFixed(2)} ₽/$</b></>
+                  ) : rateLoading ? (
+                    "получаем курс…"
+                  ) : (
+                    "курс недоступен"
+                  )}
+                </div>
+              )}
 
               <div className="mt-5 flex items-stretch gap-2">
                 <button
