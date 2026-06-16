@@ -65,7 +65,28 @@ function ProductPage() {
               {product.oldPrice && <div className="text-lg text-muted-foreground line-through">{product.oldPrice.toLocaleString("ru-RU")} ₽</div>}
             </div>
 
-            <button className="mt-6 w-full rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 py-4 text-base font-semibold text-white shadow-lg shadow-fuchsia-500/30 transition hover:opacity-90">Купить мгновенно</button>
+            {product.buyUrl ? (
+              <a
+                href={product.buyUrl}
+                target="_blank"
+                rel="noopener nofollow sponsored"
+                className="mt-6 block w-full rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 py-4 text-center text-base font-semibold text-white shadow-lg shadow-fuchsia-500/30 transition hover:opacity-90"
+              >
+                Купить мгновенно
+              </a>
+            ) : (
+              <button className="mt-6 w-full rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 py-4 text-base font-semibold text-white shadow-lg shadow-fuchsia-500/30 transition hover:opacity-90">Купить мгновенно</button>
+            )}
+            {product.detailsUrl && (
+              <a
+                href={product.detailsUrl}
+                target="_blank"
+                rel="noopener nofollow sponsored"
+                className="mt-3 block w-full rounded-xl border border-border py-3 text-center text-sm font-medium text-foreground transition hover:bg-muted"
+              >
+                Подробнее на площадке продавца
+              </a>
+            )}
 
             <div className="mt-6 rounded-2xl border border-border bg-card p-5">
               <div className="flex items-center gap-3">
