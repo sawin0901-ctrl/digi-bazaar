@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
-async function assertAdmin(supabase: ReturnType<typeof requireSupabaseAuth> extends never ? never : any, userId: string) {
+type AuthedSupabase = SupabaseClient<Database>;
+
+async function assertAdmin(supabase: AuthedSupabase, userId: string) {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: admin role required");
@@ -77,7 +81,10 @@ export type ProductInput = {
   sort_order: number;
 };
 
-function buildPartnerLinks(digisellerId: string | null | undefined, partnerAi: string) {
+function buildPartnerLinks(
+  digisellerId: string | null | undefined,
+  partnerAi: string,
+): { details_url: string | null; buy_url: string | null } {
   if (!digisellerId) return { details_url: null, buy_url: null };
   return {
     details_url: `https://plati.market/itm/${digisellerId}?ai=${partnerAi}`,
