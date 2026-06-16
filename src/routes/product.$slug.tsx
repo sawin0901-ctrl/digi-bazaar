@@ -2,6 +2,8 @@ import { useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { productQO, productsQO, siteTextQO } from "@/lib/marketplace/queries";
@@ -287,9 +289,11 @@ function ProductPage() {
           </div>
 
           {tab === "description" && (
-            <p className="mt-5 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-              {product.description}
-            </p>
+            <div className="prose prose-sm mt-5 max-w-3xl dark:prose-invert prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary prose-img:rounded-2xl prose-img:border prose-img:border-border">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {product.description}
+              </ReactMarkdown>
+            </div>
           )}
 
           {tab === "rules" && rulesText && (
