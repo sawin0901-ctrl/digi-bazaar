@@ -102,6 +102,7 @@ function ProductPage() {
     }
     return out;
   })();
+  const allImages = product.image ? [product.image, ...galleryImages.filter((src) => src !== product.image)] : galleryImages;
 
   const selectedVariant = product.variants.find((v) => v.label === variant) ?? null;
   const canBuy = (!hasVariants || !!variant) && (!hasVariants || agreed);
