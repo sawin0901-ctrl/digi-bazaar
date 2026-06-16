@@ -351,18 +351,11 @@ function ProductPage() {
           </div>
 
           {tab === "description" && (
-            <div className="prose prose-sm mt-5 max-w-3xl dark:prose-invert prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary prose-img:mx-auto prose-img:my-4 prose-img:max-h-64 prose-img:w-auto prose-img:rounded-xl prose-img:border prose-img:border-border">
+            <div className="prose prose-sm mt-5 max-w-3xl dark:prose-invert prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  img: ({ src, alt }) => (
-                    <img
-                      src={typeof src === "string" ? src : undefined}
-                      alt={alt ?? ""}
-                      loading="lazy"
-                      className="mx-auto my-4 max-h-64 w-auto rounded-xl border border-border object-contain"
-                    />
-                  ),
+                  img: () => null,
                   a: ({ href, children, ...rest }) => {
                     const raw = typeof href === "string" ? href : "";
                     const { href: finalHref, isPartner } = withAffiliate(raw);
