@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
-import type { Product } from "@/lib/marketplace/data";
 
 const badgeStyle: Record<string, string> = {
   HOT: "bg-gradient-to-r from-orange-500 to-rose-500 text-white",
