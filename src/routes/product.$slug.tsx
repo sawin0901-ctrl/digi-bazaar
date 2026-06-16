@@ -11,6 +11,23 @@ import { logClick } from "@/lib/marketplace/catalog.functions";
 import { Star, ShieldCheck, Zap, BadgeCheck, ShoppingBasket, Check, ChevronRight } from "lucide-react";
 import { useUsdRub, parseUsdAmount } from "@/hooks/use-usd-rub";
 
+const PARTNER_ID = "1022102";
+
+function withAffiliate(href: string): { href: string; isPartner: boolean } {
+  try {
+    const url = new URL(href, "https://plati.market");
+    if (/(^|\.)plati\.market$/i.test(url.hostname) || /(^|\.)digiseller\.(market|com|ru)$/i.test(url.hostname)) {
+      url.searchParams.set("ai", PARTNER_ID);
+      return { href: url.toString(), isPartner: true };
+    }
+  } catch {
+    /* ignore */
+  }
+  return { href, isPartner: false };
+}
+
+
+
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params, context }) => {
     const product = await context.queryClient.ensureQueryData(productQO(params.slug));
@@ -290,7 +307,35 @@ function ProductPage() {
 
           {tab === "description" && (
             <div className="prose prose-sm mt-5 max-w-3xl dark:prose-invert prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary prose-img:rounded-2xl prose-img:border prose-img:border-border">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ href, children, ...rest }) => {
+                    const raw = typeof href === "string" ? href : "";
+                    const { href: finalHref, isPartner } = withAffiliate(raw);
+                    return (
+                      <a
+                        {...rest}
+                        href={finalHref}
+                        target="_blank"
+                        rel={isPartner ? "noopener nofollow sponsored" : "noopener noreferrer"}
+                        onClick={() => {
+                          if (!isPartner) return;
+                          logClickFn({
+                            data: {
+                              productSlug: product.slug,
+                              variantLabel: `desc_link:${raw}`,
+                              referer: typeof document !== "undefined" ? document.referrer || null : null,
+                            },
+                          }).catch(() => {});
+                        }}
+                      >
+                        {children}
+                      </a>
+                    );
+                  },
+                }}
+              >
                 {product.description}
               </ReactMarkdown>
             </div>
