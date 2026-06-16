@@ -26,11 +26,7 @@ function withAffiliate(href: string): { href: string; isPartner: boolean } {
   return { href, isPartner: false };
 }
 
-function logPartnerClick(href: string, productSlug: string) {
-  void fetch("/_serverFn/logClick", {}).catch(() => {});
-  void href;
-  void productSlug;
-}
+
 
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params, context }) => {
