@@ -81,6 +81,7 @@ function ProductPage() {
   );
   const [agreed, setAgreed] = useState(false);
   const [tab, setTab] = useState<"description" | "images" | "rules" | "reviews" | "warranty">("description");
+  const [activeImage, setActiveImage] = useState(0);
   const { rate, loading: rateLoading } = useUsdRub();
 
   if (!product) {
@@ -101,6 +102,7 @@ function ProductPage() {
     }
     return out;
   })();
+  const allImages = product.image ? [product.image, ...galleryImages.filter((src) => src !== product.image)] : galleryImages;
 
   const selectedVariant = product.variants.find((v) => v.label === variant) ?? null;
   const canBuy = (!hasVariants || !!variant) && (!hasVariants || agreed);
@@ -138,9 +140,38 @@ function ProductPage() {
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="rounded-3xl border border-border bg-card p-5 md:p-7">
-            <div className="grid gap-6 md:grid-cols-[260px_1fr]">
-              <div className="overflow-hidden rounded-2xl border border-border bg-muted">
-                <img src={product.image} alt={product.title} className="aspect-square w-full object-cover" />
+            <div className="grid gap-6 md:grid-cols-[auto_1fr]">
+              <div className="flex gap-3">
+                {allImages.length > 1 && (
+                  <div className="hidden flex-col gap-2 md:flex">
+                    {allImages.map((src, i) => (
+                      <button
+                        key={`thumb-${i}`}
+                        type="button"
+                        onClick={() => setActiveImage(i)}
+                        className={
+                          "shrink-0 overflow-hidden rounded-xl border transition " +
+                          (activeImage === i
+                            ? "border-primary ring-2 ring-primary/20"
+                            : "border-border hover:border-primary/50")
+                        }
+                      >
+                        <img
+                          src={src}
+                          alt={`Миниатюра ${i + 1}`}
+                          className="h-16 w-16 object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="overflow-hidden rounded-2xl border border-border bg-muted">
+                  <img
+                    src={allImages[activeImage] ?? product.image}
+                    alt={product.title}
+                    className="aspect-square w-full max-w-[340px] object-cover"
+                  />
+                </div>
               </div>
               <div>
                 <h1 className="text-2xl font-bold leading-tight tracking-tight md:text-[28px]">{product.title}</h1>
