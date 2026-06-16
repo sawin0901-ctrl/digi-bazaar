@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
+import { DigisellerWidget } from "@/components/marketplace/DigisellerWidget";
 import { getProduct, products } from "@/lib/marketplace/data";
 import { Star, ShieldCheck, Zap, BadgeCheck } from "lucide-react";
 
@@ -110,6 +111,18 @@ function ProductPage() {
           <h2 className="text-xl font-bold">Описание</h2>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">{product.description}</p>
         </section>
+
+        {product.digisellerId && (
+          <section className="mt-12">
+            <h2 className="text-xl font-bold">Оформление заказа</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Покупка проходит через защищённую платёжную систему Digiseller. Цена и наличие обновляются автоматически.
+            </p>
+            <div className="mt-5 rounded-2xl border border-border bg-card p-5">
+              <DigisellerWidget productId={product.digisellerId} />
+            </div>
+          </section>
+        )}
 
         {related.length > 0 && (
           <section className="mt-12">
