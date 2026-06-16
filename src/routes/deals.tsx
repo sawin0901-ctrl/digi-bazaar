@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
-import { products } from "@/lib/marketplace/data";
+import { productsQO } from "@/lib/marketplace/queries";
 
 export const Route = createFileRoute("/deals")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(productsQO({ dealsOnly: true })),
   head: () => ({
     meta: [
       { title: "Скидки до −70% — DIGIVAULT" },
@@ -11,7 +13,7 @@ export const Route = createFileRoute("/deals")({
     ],
   }),
   component: () => {
-    const list = products.filter((p) => p.oldPrice);
+    const { data: list } = useSuspenseQuery(productsQO({ dealsOnly: true }));
     return (
       <Layout>
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">

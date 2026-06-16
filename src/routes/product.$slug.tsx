@@ -1,28 +1,33 @@
 import { useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
-import { getProduct, products } from "@/lib/marketplace/data";
+import { productQO, productsQO, siteTextQO } from "@/lib/marketplace/queries";
+import { logClick } from "@/lib/marketplace/catalog.functions";
 import { Star, ShieldCheck, Zap, BadgeCheck, ShoppingBasket, Check, ChevronRight } from "lucide-react";
 import { useUsdRub, parseUsdAmount } from "@/hooks/use-usd-rub";
-import { BUYER_TERMS } from "@/lib/marketplace/terms";
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: ({ params }) => {
-    const product = getProduct(params.slug);
+  loader: async ({ params, context }) => {
+    const product = await context.queryClient.ensureQueryData(productQO(params.slug));
     if (!product) throw notFound();
-    return { product };
+    await Promise.all([
+      context.queryClient.ensureQueryData(productsQO()),
+      context.queryClient.ensureQueryData(siteTextQO("buyer_rules")),
+      context.queryClient.ensureQueryData(siteTextQO("warranty")),
+    ]);
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `${loaderData.product.title} — DIGIVAULT` },
-          { name: "description", content: loaderData.product.description },
-          { property: "og:title", content: loaderData.product.title },
-          { property: "og:image", content: loaderData.product.image },
-        ]
-      : [{ title: "Товар не найден — DIGIVAULT" }],
-  }),
+  head: ({ params }) => {
+    // Note: head() runs before loader data is available in match cache reliably across SSR;
+    // we set conservative defaults and rely on the route-level title once loaded.
+    return {
+      meta: [
+        { title: `Товар ${params.slug} — DIGIVAULT` },
+      ],
+    };
+  },
   component: ProductPage,
   notFoundComponent: () => (
     <Layout>
@@ -32,10 +37,11 @@ export const Route = createFileRoute("/product/$slug")({
       </div>
     </Layout>
   ),
-  errorComponent: ({ reset }) => (
+  errorComponent: ({ reset, error }) => (
     <Layout>
       <div className="mx-auto max-w-3xl px-4 py-24 text-center">
         <h1 className="text-2xl font-bold">Не удалось загрузить товар</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
         <button onClick={reset} className="mt-6 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Повторить</button>
       </div>
     </Layout>
@@ -43,19 +49,52 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product } = Route.useLoaderData();
-  const related = products.filter((p) => p.category === product.category && p.slug !== product.slug).slice(0, 4);
-  const [variant, setVariant] = useState<string | null>(product.variants?.[0] ?? null);
+  const { slug } = Route.useParams();
+  const { data: product } = useSuspenseQuery(productQO(slug));
+  const { data: allProducts } = useSuspenseQuery(productsQO());
+  const { data: rulesText } = useSuspenseQuery(siteTextQO("buyer_rules"));
+  const { data: warrantyText } = useSuspenseQuery(siteTextQO("warranty"));
+  const logClickFn = useServerFn(logClick);
+
+  const hasVariants = (product?.variants.length ?? 0) > 0;
+  const [variant, setVariant] = useState<string | null>(
+    hasVariants && product ? product.variants[0].label : null,
+  );
   const [agreed, setAgreed] = useState(false);
   const [tab, setTab] = useState<"description" | "rules" | "reviews" | "warranty">("description");
-  const canBuy = (!product.variants || !!variant) && (!product.variants || agreed);
-  const buyHref = product.buyUrl ?? "#";
-
   const { rate, loading: rateLoading } = useUsdRub();
-  const usd = parseUsdAmount(variant);
+
+  if (!product) {
+    throw notFound();
+  }
+
+  const related = allProducts
+    .filter((p) => p.category_slug === product.category_slug && p.slug !== product.slug)
+    .slice(0, 4);
+
+  const selectedVariant = product.variants.find((v) => v.label === variant) ?? null;
+  const canBuy = (!hasVariants || !!variant) && (!hasVariants || agreed);
+  const buyHref = product.buy_url ?? "#";
+  const usd = selectedVariant?.usd_amount ?? parseUsdAmount(variant);
   const dynamicPrice =
-    usd != null && rate != null ? Math.ceil(usd * rate) : null;
+    selectedVariant?.price_rub != null
+      ? selectedVariant.price_rub
+      : usd != null && rate != null
+        ? Math.ceil(usd * rate)
+        : null;
   const displayPrice = dynamicPrice ?? product.price;
+
+  const handleBuy = () => {
+    if (!canBuy) return;
+    logClickFn({
+      data: {
+        productSlug: product.slug,
+        variantLabel: variant,
+        referer: typeof document !== "undefined" ? document.referrer || null : null,
+      },
+    }).catch(() => {});
+  };
+
   return (
     <Layout>
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
@@ -68,7 +107,6 @@ function ProductPage() {
         </nav>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-          {/* LEFT — main product card */}
           <div className="rounded-3xl border border-border bg-card p-5 md:p-7">
             <div className="grid gap-6 md:grid-cols-[260px_1fr]">
               <div className="overflow-hidden rounded-2xl border border-border bg-muted">
@@ -88,25 +126,25 @@ function ProductPage() {
                 <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs">
                   <div className="grid h-5 w-5 place-items-center rounded-full bg-gradient-to-br from-violet-500/30 to-cyan-500/30"><BadgeCheck className="h-3 w-3" /></div>
                   <span className="font-medium">{product.seller}</span>
-                  <span className="text-muted-foreground">• рейтинг {product.sellerRating}</span>
+                  <span className="text-muted-foreground">• рейтинг {product.seller_rating}</span>
                 </div>
               </div>
             </div>
 
-            {product.variants && product.variants.length > 0 && (
+            {hasVariants && (
               <div className="mt-7">
                 <div className="flex items-center gap-1 text-sm">
-                  <span className="text-muted-foreground">{product.variantLabel ?? "Выберите вариант"}</span>
+                  <span className="text-muted-foreground">{product.variant_label ?? "Выберите вариант"}</span>
                   <span className="text-rose-500">*</span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {product.variants.map((v: string) => {
-                    const active = v === variant;
+                  {product.variants.map((v) => {
+                    const active = v.label === variant;
                     return (
                       <button
-                        key={v}
+                        key={v.label}
                         type="button"
-                        onClick={() => setVariant(v)}
+                        onClick={() => setVariant(v.label)}
                         className={
                           "rounded-xl border px-3.5 py-2 text-sm transition " +
                           (active
@@ -114,7 +152,7 @@ function ProductPage() {
                             : "border-border bg-background hover:border-primary/40 hover:bg-muted")
                         }
                       >
-                        {v}
+                        {v.label}
                       </button>
                     );
                   })}
@@ -131,7 +169,7 @@ function ProductPage() {
                     {agreed && <Check className="h-3.5 w-3.5" />}
                   </span>
                   <span className="text-muted-foreground">
-                    Я внимательно прочитал описание товара и полностью принимаю его, а также отдельно подтверждаю, что мой аккаунт Apple относится к региону <b className="text-foreground">США</b>.
+                    Я внимательно прочитал описание товара и полностью принимаю его.
                   </span>
                   <input type="checkbox" className="sr-only" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
                 </label>
@@ -139,16 +177,15 @@ function ProductPage() {
             )}
           </div>
 
-          {/* RIGHT — sticky purchase card */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-3xl border border-border bg-card p-6 shadow-lg shadow-black/5">
               <div className="flex items-end gap-3">
                 <div className="text-4xl font-extrabold tracking-tight">
                   {displayPrice.toLocaleString("ru-RU")} ₽
                 </div>
-                {product.oldPrice && !dynamicPrice && (
+                {product.old_price && !dynamicPrice && (
                   <div className="pb-1 text-base text-muted-foreground line-through">
-                    {product.oldPrice.toLocaleString("ru-RU")} ₽
+                    {product.old_price.toLocaleString("ru-RU")} ₽
                   </div>
                 )}
               </div>
@@ -178,7 +215,7 @@ function ProductPage() {
                   target="_blank"
                   rel="noopener nofollow sponsored"
                   aria-disabled={!canBuy}
-                  onClick={(e) => { if (!canBuy) e.preventDefault(); }}
+                  onClick={(e) => { if (!canBuy) { e.preventDefault(); return; } handleBuy(); }}
                   className={
                     "flex-1 rounded-xl py-3 text-center text-sm font-semibold transition " +
                     (canBuy
@@ -191,7 +228,8 @@ function ProductPage() {
               </div>
 
               <p className="mt-3 text-xs text-muted-foreground">
-                Нажимая на кнопку, вы соглашаетесь с <a href={product.detailsUrl ?? "#"} target="_blank" rel="noopener nofollow" className="text-primary hover:underline">правилами покупки</a>.
+                Нажимая на кнопку, вы соглашаетесь с{" "}
+                <button type="button" onClick={() => setTab("rules")} className="text-primary hover:underline">правилами покупки</button>.
               </p>
 
               <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-5 text-xs">
@@ -208,7 +246,7 @@ function ProductPage() {
               <div className="mt-5 rounded-2xl border border-border bg-background/60 p-4">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Продавец</span>
-                  <span className="inline-flex items-center gap-1 text-amber-500"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />{product.sellerRating}</span>
+                  <span className="inline-flex items-center gap-1 text-amber-500"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />{product.seller_rating}</span>
                 </div>
                 <div className="mt-1 font-semibold">{product.seller}</div>
               </div>
@@ -221,7 +259,7 @@ function ProductPage() {
             {([
               { id: "description", label: "Описание" },
               { id: "rules", label: "Правила покупки" },
-              { id: "reviews", label: `Отзывы` },
+              { id: "reviews", label: "Отзывы" },
               { id: "warranty", label: "Гарантии" },
             ] as const).map((t) => {
               const active = tab === t.id;
@@ -254,15 +292,10 @@ function ProductPage() {
             </p>
           )}
 
-          {tab === "rules" && (
-            <div className="mt-5 grid max-w-3xl gap-6 text-sm leading-relaxed text-muted-foreground">
-              {BUYER_TERMS.map((s) => (
-                <div key={s.id}>
-                  <h3 className="mb-2 text-base font-semibold text-foreground">{s.title}</h3>
-                  <div className="space-y-2">{s.body}</div>
-                </div>
-              ))}
-            </div>
+          {tab === "rules" && rulesText && (
+            <article className="mt-5 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+              {rulesText.body}
+            </article>
           )}
 
           {tab === "reviews" && (
@@ -271,18 +304,10 @@ function ProductPage() {
             </p>
           )}
 
-          {tab === "warranty" && (
-            <div className="mt-5 max-w-3xl space-y-3 text-sm leading-relaxed text-muted-foreground">
-              <p>
-                Сделка защищена площадкой: средства поступают продавцу только после успешного
-                получения товара. При любых проблемах с ключом откройте диспут в течение 24 часов
-                после покупки.
-              </p>
-              <p>
-                Если товар не соответствует описанию или не активируется, мы вернём деньги в
-                полном объёме.
-              </p>
-            </div>
+          {tab === "warranty" && warrantyText && (
+            <article className="mt-5 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+              {warrantyText.body}
+            </article>
           )}
         </section>
 

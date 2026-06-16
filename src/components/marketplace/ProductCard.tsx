@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
+import type { ProductDTO } from "@/lib/marketplace/catalog.functions";
 
 const badgeStyle: Record<string, string> = {
   HOT: "bg-gradient-to-r from-orange-500 to-rose-500 text-white",
@@ -8,7 +9,7 @@ const badgeStyle: Record<string, string> = {
   "ТОП": "bg-gradient-to-r from-amber-400 to-orange-500 text-white",
 };
 
-export function ProductCard({ product }: { product: import("@/lib/marketplace/data").Product }) {
+export function ProductCard({ product }: { product: ProductDTO }) {
   return (
     <Link
       to="/product/$slug"
@@ -18,7 +19,7 @@ export function ProductCard({ product }: { product: import("@/lib/marketplace/da
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         <img src={product.image} alt={product.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" loading="lazy" />
         {product.badge && (
-          <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow-lg ${badgeStyle[product.badge]}`}>
+          <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow-lg ${badgeStyle[product.badge] ?? "bg-primary text-primary-foreground"}`}>
             {product.badge}
           </span>
         )}
@@ -34,7 +35,7 @@ export function ProductCard({ product }: { product: import("@/lib/marketplace/da
         <div className="mt-auto flex items-end justify-between pt-2">
           <div>
             <div className="text-xl font-bold tracking-tight">{product.price.toLocaleString("ru-RU")} ₽</div>
-            {product.oldPrice && <div className="text-xs text-muted-foreground line-through">{product.oldPrice.toLocaleString("ru-RU")} ₽</div>}
+            {product.old_price && <div className="text-xs text-muted-foreground line-through">{product.old_price.toLocaleString("ru-RU")} ₽</div>}
           </div>
           <span className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition group-hover:bg-primary/90">Купить</span>
         </div>

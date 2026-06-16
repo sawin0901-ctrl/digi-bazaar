@@ -14,16 +14,268 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image: string | null
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image?: string | null
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image?: string | null
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      click_events: {
+        Row: {
+          created_at: string
+          id: string
+          product_slug: string
+          referer: string | null
+          user_agent: string | null
+          variant_label: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_slug: string
+          referer?: string | null
+          user_agent?: string | null
+          variant_label?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_slug?: string
+          referer?: string | null
+          user_agent?: string | null
+          variant_label?: string | null
+        }
+        Relationships: []
+      }
+      product_variants: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          price_rub: number | null
+          product_id: string
+          sort_order: number
+          usd_amount: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          price_rub?: number | null
+          product_id: string
+          sort_order?: number
+          usd_amount?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          price_rub?: number | null
+          product_id?: string
+          sort_order?: number
+          usd_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          badge: string | null
+          buy_url: string | null
+          category_slug: string
+          created_at: string
+          description: string
+          details_url: string | null
+          digiseller_id: string | null
+          id: string
+          image: string
+          is_active: boolean
+          old_price: number | null
+          price: number
+          rating: number
+          reviews: number
+          sales: number
+          seller: string
+          seller_rating: number
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+          variant_label: string | null
+        }
+        Insert: {
+          badge?: string | null
+          buy_url?: string | null
+          category_slug: string
+          created_at?: string
+          description?: string
+          details_url?: string | null
+          digiseller_id?: string | null
+          id?: string
+          image?: string
+          is_active?: boolean
+          old_price?: number | null
+          price?: number
+          rating?: number
+          reviews?: number
+          sales?: number
+          seller?: string
+          seller_rating?: number
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          variant_label?: string | null
+        }
+        Update: {
+          badge?: string | null
+          buy_url?: string | null
+          category_slug?: string
+          created_at?: string
+          description?: string
+          details_url?: string | null
+          digiseller_id?: string | null
+          id?: string
+          image?: string
+          is_active?: boolean
+          old_price?: number | null
+          price?: number
+          rating?: number
+          reviews?: number
+          sales?: number
+          seller?: string
+          seller_rating?: number
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          variant_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      site_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      site_texts: {
+        Row: {
+          body: string
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +402,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
