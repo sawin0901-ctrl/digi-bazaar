@@ -1,32 +1,49 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
-import { categories, products } from "@/lib/marketplace/data";
+import { categoriesQO, productsQO } from "@/lib/marketplace/queries";
 
 export const Route = createFileRoute("/catalog")({
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(categoriesQO()),
+      context.queryClient.ensureQueryData(productsQO()),
+    ]);
+  },
   head: () => ({
     meta: [
       { title: "Каталог цифровых товаров — DIGIVAULT" },
       { name: "description", content: "Каталог из 18 000+ цифровых товаров: игры, подписки, ключи, карты и софт." },
     ],
   }),
+  errorComponent: ({ error }) => (
+    <Layout>
+      <div className="mx-auto max-w-3xl px-4 py-24 text-center">
+        <h1 className="text-2xl font-bold">Не удалось загрузить каталог</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+      </div>
+    </Layout>
+  ),
   component: CatalogPage,
 });
 
 function CatalogPage() {
+  const { data: categories } = useSuspenseQuery(categoriesQO());
+  const { data: products } = useSuspenseQuery(productsQO());
   const [cat, setCat] = useState<string>("all");
   const [sort, setSort] = useState<string>("popular");
 
   const list = useMemo(() => {
-    let arr = cat === "all" ? products : products.filter((p) => p.category === cat);
+    let arr = cat === "all" ? products : products.filter((p) => p.category_slug === cat);
     arr = [...arr];
     if (sort === "price-asc") arr.sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") arr.sort((a, b) => b.price - a.price);
     else if (sort === "rating") arr.sort((a, b) => b.rating - a.rating);
     else arr.sort((a, b) => b.sales - a.sales);
     return arr;
-  }, [cat, sort]);
+  }, [cat, sort, products]);
 
   return (
     <Layout>
