@@ -81,6 +81,7 @@ function ProductPage() {
   );
   const [agreed, setAgreed] = useState(false);
   const [tab, setTab] = useState<"description" | "images" | "rules" | "reviews" | "warranty">("description");
+  const [activeImage, setActiveImage] = useState(0);
   const { rate, loading: rateLoading } = useUsdRub();
 
   if (!product) {
