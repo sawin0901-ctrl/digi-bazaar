@@ -23,6 +23,8 @@ export type Product = {
   detailsUrl?: string;
   buyUrl?: string;
   digisellerId?: string;
+  variants?: string[];
+  variantLabel?: string;
 };
 
 import cards from "@/assets/cat-cards.jpg";
