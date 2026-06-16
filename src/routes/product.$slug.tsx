@@ -80,7 +80,7 @@ function ProductPage() {
     hasVariants && product ? product.variants[0].label : null,
   );
   const [agreed, setAgreed] = useState(false);
-  const [tab, setTab] = useState<"description" | "rules" | "reviews" | "warranty">("description");
+  const [tab, setTab] = useState<"description" | "images" | "rules" | "reviews" | "warranty">("description");
   const { rate, loading: rateLoading } = useUsdRub();
 
   if (!product) {
@@ -90,6 +90,17 @@ function ProductPage() {
   const related = allProducts
     .filter((p) => p.category_slug === product.category_slug && p.slug !== product.slug)
     .slice(0, 4);
+
+  const galleryImages: string[] = (() => {
+    const desc = product.description ?? "";
+    const out: string[] = [];
+    const re = /!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(desc)) !== null) {
+      if (m[1] && !out.includes(m[1])) out.push(m[1]);
+    }
+    return out;
+  })();
 
   const selectedVariant = product.variants.find((v) => v.label === variant) ?? null;
   const canBuy = (!hasVariants || !!variant) && (!hasVariants || agreed);
@@ -277,6 +288,7 @@ function ProductPage() {
           <div className="flex flex-wrap gap-x-6 gap-y-2 border-b border-border text-sm">
             {([
               { id: "description", label: "Описание" },
+              { id: "images", label: "Изображения" },
               { id: "rules", label: "Правила покупки" },
               { id: "reviews", label: "Отзывы" },
               { id: "warranty", label: "Гарантии" },
@@ -306,10 +318,18 @@ function ProductPage() {
           </div>
 
           {tab === "description" && (
-            <div className="prose prose-sm mt-5 max-w-3xl dark:prose-invert prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary prose-img:rounded-2xl prose-img:border prose-img:border-border">
+            <div className="prose prose-sm mt-5 max-w-3xl dark:prose-invert prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary prose-img:mx-auto prose-img:my-4 prose-img:max-h-64 prose-img:w-auto prose-img:rounded-xl prose-img:border prose-img:border-border">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
+                  img: ({ src, alt }) => (
+                    <img
+                      src={typeof src === "string" ? src : undefined}
+                      alt={alt ?? ""}
+                      loading="lazy"
+                      className="mx-auto my-4 max-h-64 w-auto rounded-xl border border-border object-contain"
+                    />
+                  ),
                   a: ({ href, children, ...rest }) => {
                     const raw = typeof href === "string" ? href : "";
                     const { href: finalHref, isPartner } = withAffiliate(raw);
@@ -338,6 +358,33 @@ function ProductPage() {
               >
                 {product.description}
               </ReactMarkdown>
+            </div>
+          )}
+
+          {tab === "images" && (
+            <div className="mt-5">
+              {galleryImages.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Изображений пока нет.</p>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {galleryImages.map((src, i) => (
+                    <a
+                      key={`${src}-${i}`}
+                      href={src}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block overflow-hidden rounded-2xl border border-border bg-muted"
+                    >
+                      <img
+                        src={src}
+                        alt={`Изображение ${i + 1}`}
+                        loading="lazy"
+                        className="h-64 w-full object-contain transition hover:scale-[1.02]"
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
