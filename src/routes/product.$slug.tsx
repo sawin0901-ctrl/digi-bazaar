@@ -91,7 +91,7 @@ function ProductPage() {
                   <span className="text-rose-500">*</span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {product.variants.map((v) => {
+                  {product.variants.map((v: string) => {
                     const active = v === variant;
                     return (
                       <button
