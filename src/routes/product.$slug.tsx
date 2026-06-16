@@ -5,6 +5,7 @@ import { ProductCard } from "@/components/marketplace/ProductCard";
 import { getProduct, products } from "@/lib/marketplace/data";
 import { Star, ShieldCheck, Zap, BadgeCheck, ShoppingBasket, Check, ChevronRight } from "lucide-react";
 import { useUsdRub, parseUsdAmount } from "@/hooks/use-usd-rub";
+import { BUYER_TERMS } from "@/lib/marketplace/terms";
 
 export const Route = createFileRoute("/product/$slug")({
   loader: ({ params }) => {
@@ -46,6 +47,7 @@ function ProductPage() {
   const related = products.filter((p) => p.category === product.category && p.slug !== product.slug).slice(0, 4);
   const [variant, setVariant] = useState<string | null>(product.variants?.[0] ?? null);
   const [agreed, setAgreed] = useState(false);
+  const [tab, setTab] = useState<"description" | "rules" | "reviews" | "warranty">("description");
   const canBuy = (!product.variants || !!variant) && (!product.variants || agreed);
   const buyHref = product.buyUrl ?? "#";
 
@@ -215,12 +217,73 @@ function ProductPage() {
         </div>
 
         <section className="mt-10 rounded-3xl border border-border bg-card p-6 md:p-8">
-          <div className="flex gap-6 border-b border-border text-sm">
-            <div className="border-b-2 border-primary pb-3 font-semibold text-primary">Описание</div>
-            <div className="pb-3 text-muted-foreground">Отзывы <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs">{product.reviews.toLocaleString("ru-RU")}</span></div>
-            <div className="pb-3 text-muted-foreground">Гарантии</div>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 border-b border-border text-sm">
+            {([
+              { id: "description", label: "Описание" },
+              { id: "rules", label: "Правила покупки" },
+              { id: "reviews", label: `Отзывы` },
+              { id: "warranty", label: "Гарантии" },
+            ] as const).map((t) => {
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={
+                    "pb-3 transition " +
+                    (active
+                      ? "border-b-2 border-primary font-semibold text-primary"
+                      : "text-muted-foreground hover:text-foreground")
+                  }
+                >
+                  {t.label}
+                  {t.id === "reviews" && (
+                    <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs text-foreground">
+                      {product.reviews.toLocaleString("ru-RU")}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <p className="mt-5 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{product.description}</p>
+
+          {tab === "description" && (
+            <p className="mt-5 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+              {product.description}
+            </p>
+          )}
+
+          {tab === "rules" && (
+            <div className="mt-5 grid max-w-3xl gap-6 text-sm leading-relaxed text-muted-foreground">
+              {BUYER_TERMS.map((s) => (
+                <div key={s.id}>
+                  <h3 className="mb-2 text-base font-semibold text-foreground">{s.title}</h3>
+                  <div className="space-y-2">{s.body}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab === "reviews" && (
+            <p className="mt-5 text-sm text-muted-foreground">
+              Отзывы скоро появятся на этой странице.
+            </p>
+          )}
+
+          {tab === "warranty" && (
+            <div className="mt-5 max-w-3xl space-y-3 text-sm leading-relaxed text-muted-foreground">
+              <p>
+                Сделка защищена площадкой: средства поступают продавцу только после успешного
+                получения товара. При любых проблемах с ключом откройте диспут в течение 24 часов
+                после покупки.
+              </p>
+              <p>
+                Если товар не соответствует описанию или не активируется, мы вернём деньги в
+                полном объёме.
+              </p>
+            </div>
+          )}
         </section>
 
         {related.length > 0 && (
