@@ -56,21 +56,25 @@ function ProductPage() {
   const { data: warrantyText } = useSuspenseQuery(siteTextQO("warranty"));
   const logClickFn = useServerFn(logClick);
 
-  if (!product) return null;
+  const hasVariants = (product?.variants.length ?? 0) > 0;
+  const [variant, setVariant] = useState<string | null>(
+    hasVariants && product ? product.variants[0].label : null,
+  );
+  const [agreed, setAgreed] = useState(false);
+  const [tab, setTab] = useState<"description" | "rules" | "reviews" | "warranty">("description");
+  const { rate, loading: rateLoading } = useUsdRub();
+
+  if (!product) {
+    throw notFound();
+  }
 
   const related = allProducts
     .filter((p) => p.category_slug === product.category_slug && p.slug !== product.slug)
     .slice(0, 4);
-  const hasVariants = product.variants.length > 0;
-  const [variant, setVariant] = useState<string | null>(hasVariants ? product.variants[0].label : null);
-  const [agreed, setAgreed] = useState(false);
-  const [tab, setTab] = useState<"description" | "rules" | "reviews" | "warranty">("description");
 
   const selectedVariant = product.variants.find((v) => v.label === variant) ?? null;
   const canBuy = (!hasVariants || !!variant) && (!hasVariants || agreed);
   const buyHref = product.buy_url ?? "#";
-
-  const { rate, loading: rateLoading } = useUsdRub();
   const usd = selectedVariant?.usd_amount ?? parseUsdAmount(variant);
   const dynamicPrice =
     selectedVariant?.price_rub != null
