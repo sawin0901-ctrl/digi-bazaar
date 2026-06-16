@@ -20,6 +20,8 @@ export type Product = {
   image: string;
   badge?: "HOT" | "NEW" | "-50%" | "ТОП";
   description: string;
+  detailsUrl?: string;
+  buyUrl?: string;
 };
 
 import cards from "@/assets/cat-cards.jpg";
@@ -51,6 +53,23 @@ export const products: Product[] = [
   { slug: "windows-11-pro", title: "Windows 11 Pro — лицензионный ключ", category: "software", seller: "SoftPro", sellerRating: 4.91, price: 1990, oldPrice: 3490, rating: 4.7, reviews: 2210, sales: 9840, image: p6, badge: "HOT", description: "Лицензионный ключ Windows 11 Pro. Привязка к учётной записи Microsoft." },
   { slug: "elden-saga-key", title: "Elden Saga: Eternal — Steam Key", category: "games", seller: "DigiKing", sellerRating: 4.96, price: 2890, oldPrice: 4490, rating: 4.9, reviews: 3210, sales: 11240, image: p7, badge: "ТОП", description: "Ключ активации в Steam. Регион: Global. AAA-проект года." },
   { slug: "apple-gift-2000", title: "Apple Gift Card — 2000₽", category: "cards", seller: "WalletGo", sellerRating: 4.97, price: 2050, rating: 4.9, reviews: 1840, sales: 7320, image: p8, description: "Подарочная карта Apple для App Store, iTunes, iCloud." },
+  {
+    slug: "apple-itunes-usa-giftcard",
+    title: "Apple iTunes Gift Card (USA) — от 2$ до 1000$ • Мгновенная доставка",
+    category: "cards",
+    seller: "iTunes USA Store",
+    sellerRating: 4.98,
+    price: 153,
+    rating: 4.9,
+    reviews: 2601,
+    sales: 382375,
+    image: "https://digiseller.mycdn.ink/imgwebp.ashx?idp=10433852&dc=833761589&w=576",
+    badge: "ТОП",
+    description:
+      "Официальная подарочная карта Apple iTunes для аккаунтов App Store, зарегистрированных в США. Большой выбор номиналов от 2$ до 1000$ — пополните Apple ID и оплачивайте приложения, игры, музыку, фильмы и подписки в App Store, iTunes и Apple Music. Карты приобретаются только в авторизованных точках продаж Apple — легальное происхождение и полная гарантия активации. Доставка кода происходит автоматически 24/7 сразу после оплаты. В случае проблем с кодом по нашей вине — гарантированный возврат или замена. Продавец работает с 2008 года и входит в топ‑10 по продажам подарочных карт iTunes USA на площадке.",
+    detailsUrl: "https://plati.market/itm/672298?ai=1022102",
+    buyUrl: "https://www.oplata.info/asp2/pay_wm.asp?id_d=672298&ai=1022102&_ow=0",
+  },
 ];
 
 export function getProduct(slug: string) {
