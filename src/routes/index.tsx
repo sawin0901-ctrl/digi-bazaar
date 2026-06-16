@@ -1,12 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
-import { categories, products } from "@/lib/marketplace/data";
+import { categoriesQO, productsQO } from "@/lib/marketplace/queries";
 import hero from "@/assets/hero.jpg";
 import { ShieldCheck, Zap, Headphones, BadgeCheck } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(categoriesQO()),
+      context.queryClient.ensureQueryData(productsQO()),
+    ]);
+  },
   head: () => ({
     meta: [
       { title: "DIGIVAULT — маркетплейс цифровых товаров №1" },
@@ -15,10 +21,20 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "18 000+ товаров, 480 000+ покупателей, мгновенная доставка 24/7." },
     ],
   }),
+  errorComponent: ({ error }) => (
+    <Layout>
+      <div className="mx-auto max-w-3xl px-4 py-24 text-center">
+        <h1 className="text-2xl font-bold">Не удалось загрузить каталог</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+      </div>
+    </Layout>
+  ),
   component: Index,
 });
 
 function Index() {
+  const { data: categories } = useSuspenseQuery(categoriesQO());
+  const { data: products } = useSuspenseQuery(productsQO());
   const stats = [
     { label: "Товаров", value: "18 420+" },
     { label: "Продавцов", value: "1 240" },
@@ -83,13 +99,13 @@ function Index() {
           {categories.map((c) => (
             <Link key={c.slug} to="/catalog" className="group relative overflow-hidden rounded-2xl border border-border bg-card">
               <div className="aspect-[5/4] overflow-hidden">
-                <img src={c.image} alt={c.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
+                {c.image && <img src={c.image} alt={c.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />}
+                {!c.image && <div className="h-full w-full bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-cyan-500/30" />}
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-4 text-white">
                 <div className="text-lg font-bold">{c.name}</div>
                 <div className="mt-0.5 text-xs text-white/70">{c.description}</div>
-                <div className="mt-2 text-xs text-white/60">{c.count.toLocaleString("ru-RU")} товаров</div>
               </div>
             </Link>
           ))}
