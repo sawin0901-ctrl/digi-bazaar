@@ -23,7 +23,7 @@ export function Header() {
             <input placeholder="Поиск товаров..." className="h-10 w-72 rounded-xl border border-border bg-muted/50 pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:bg-background" />
           </div>
           <button className="grid h-10 w-10 place-items-center rounded-xl border border-border hover:bg-muted" aria-label="Корзина"><ShoppingCart className="h-4 w-4" /></button>
-          <button className="grid h-10 w-10 place-items-center rounded-xl border border-border hover:bg-muted" aria-label="Профиль"><User className="h-4 w-4" /></button>
+          <Link to="/auth" className="grid h-10 w-10 place-items-center rounded-xl border border-border hover:bg-muted" aria-label="Профиль"><User className="h-4 w-4" /></Link>
           <button onClick={() => setOpen((v) => !v)} className="grid h-10 w-10 place-items-center rounded-xl border border-border md:hidden" aria-label="Меню"><Menu className="h-4 w-4" /></button>
         </div>
       </div>
