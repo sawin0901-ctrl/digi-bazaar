@@ -22,6 +22,7 @@ export type Product = {
   description: string;
   detailsUrl?: string;
   buyUrl?: string;
+  digisellerId?: string;
 };
 
 import cards from "@/assets/cat-cards.jpg";
@@ -69,6 +70,7 @@ export const products: Product[] = [
       "Официальная подарочная карта Apple iTunes для аккаунтов App Store, зарегистрированных в США. Большой выбор номиналов от 2$ до 1000$ — пополните Apple ID и оплачивайте приложения, игры, музыку, фильмы и подписки в App Store, iTunes и Apple Music. Карты приобретаются только в авторизованных точках продаж Apple — легальное происхождение и полная гарантия активации. Доставка кода происходит автоматически 24/7 сразу после оплаты. В случае проблем с кодом по нашей вине — гарантированный возврат или замена. Продавец работает с 2008 года и входит в топ‑10 по продажам подарочных карт iTunes USA на площадке.",
     detailsUrl: "https://plati.market/itm/672298?ai=1022102",
     buyUrl: "https://www.oplata.info/asp2/pay_wm.asp?id_d=672298&ai=1022102&_ow=0",
+    digisellerId: "672298",
   },
 ];
 
