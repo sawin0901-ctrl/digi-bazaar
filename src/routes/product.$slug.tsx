@@ -104,6 +104,8 @@ function ProductPage() {
   })();
   const allImages = product.image ? [product.image, ...galleryImages.filter((src) => src !== product.image)] : galleryImages;
 
+  const cleanDescription = (product.description ?? "").replace(/!?\[[^\]]*\]\([^)]*\)/g, "").trim();
+
   const selectedVariant = product.variants.find((v) => v.label === variant) ?? null;
   const canBuy = (!hasVariants || !!variant) && (!hasVariants || agreed);
   const buyHref = product.buy_url ?? "#";
