@@ -268,6 +268,7 @@ function AdminPage() {
           error={saveMut.error?.message}
         />
       )}
+      <SeoSection isAdmin={admin.data?.isAdmin === true} />
     </Layout>
   );
 }
