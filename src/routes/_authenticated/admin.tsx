@@ -566,8 +566,8 @@ function SeoSection({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-type SeoGetFn = ReturnType<typeof useServerFn<typeof adminGetSeo>>;
-type SeoUpdateFn = ReturnType<typeof useServerFn<typeof adminUpdateSeo>>;
+type SeoGetFn = typeof adminGetSeo;
+type SeoUpdateFn = typeof adminUpdateSeo;
 
 function SeoEditDialog({
   productId,
