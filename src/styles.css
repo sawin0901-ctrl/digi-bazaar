@@ -143,3 +143,77 @@
     color: var(--color-foreground);
   }
 }
+
+/* Digiseller widget embed — visually integrate with site design */
+.digiseller-embed {
+  --ds-accent: oklch(0.65 0.22 295);
+}
+.digiseller-embed .digiseller-buy-standalone,
+.digiseller-embed [class^="digiseller-"],
+.digiseller-embed [class*=" digiseller-"] {
+  font-family: inherit !important;
+  color: var(--color-foreground) !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.digiseller-embed table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  background: transparent !important;
+}
+.digiseller-embed td,
+.digiseller-embed tr {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 4px 0 !important;
+  color: var(--color-foreground) !important;
+}
+.digiseller-embed img {
+  border-radius: 0.75rem;
+  max-width: 100% !important;
+  height: auto !important;
+}
+.digiseller-embed a,
+.digiseller-embed input[type="submit"],
+.digiseller-embed input[type="button"],
+.digiseller-embed button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  border-radius: 0.75rem !important;
+  padding: 0.625rem 1rem !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  background: linear-gradient(135deg, oklch(0.65 0.22 295), oklch(0.7 0.2 330), oklch(0.78 0.15 200)) !important;
+  color: #fff !important;
+  border: 0 !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s !important;
+  text-decoration: none !important;
+  box-shadow: 0 8px 24px -8px oklch(0.65 0.22 295 / 0.5) !important;
+}
+.digiseller-embed a:hover,
+.digiseller-embed input[type="submit"]:hover,
+.digiseller-embed input[type="button"]:hover,
+.digiseller-embed button:hover {
+  opacity: 0.9 !important;
+}
+.digiseller-embed select,
+.digiseller-embed input[type="text"],
+.digiseller-embed input[type="number"],
+.digiseller-embed input[type="email"] {
+  width: 100% !important;
+  border-radius: 0.625rem !important;
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-background) !important;
+  color: var(--color-foreground) !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  outline: none !important;
+}
+.digiseller-embed select:focus,
+.digiseller-embed input:focus {
+  border-color: var(--color-primary) !important;
+}
