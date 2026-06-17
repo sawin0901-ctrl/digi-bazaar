@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 import type { ProductDTO } from "@/lib/marketplace/catalog.functions";
+import { DigisellerPrice } from "./DigisellerPrice";
 
 const badgeStyle: Record<string, string> = {
   HOT: "bg-gradient-to-r from-orange-500 to-rose-500 text-white",
@@ -35,8 +36,12 @@ export function ProductCard({ product }: { product: ProductDTO }) {
       </Link>
       <div className="px-4 pb-4 pt-2">
         <div className="flex items-end justify-between gap-2">
-          <div>
-            <div className="text-xl font-bold tracking-tight">{product.price.toLocaleString("ru-RU")} ₽</div>
+          <div className="relative">
+            {product.digiseller_id ? (
+              <DigisellerPrice productId={product.digiseller_id} fallback={product.price} />
+            ) : (
+              <div className="text-xl font-bold tracking-tight">{product.price.toLocaleString("ru-RU")} ₽</div>
+            )}
             {product.old_price && <div className="text-xs text-muted-foreground line-through">{product.old_price.toLocaleString("ru-RU")} ₽</div>}
           </div>
           <Link
