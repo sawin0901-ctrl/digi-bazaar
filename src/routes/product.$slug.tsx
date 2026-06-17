@@ -8,7 +8,7 @@ import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { DigisellerWidget } from "@/components/marketplace/DigisellerWidget";
 import { productQO, productsQO, siteTextQO } from "@/lib/marketplace/queries";
-import { logClick } from "@/lib/marketplace/catalog.functions";
+import { logClick, getKnownDigisellerIds } from "@/lib/marketplace/catalog.functions";
 import { Star, ShieldCheck, Zap, BadgeCheck, ShoppingBasket, Check, ChevronRight } from "lucide-react";
 import { useUsdRub, parseUsdAmount } from "@/hooks/use-usd-rub";
 
@@ -39,7 +39,22 @@ export const Route = createFileRoute("/product/$slug")({
       context.queryClient.ensureQueryData(siteTextQO("buyer_rules")),
       context.queryClient.ensureQueryData(siteTextQO("warranty")),
     ]);
-    return { product };
+    // Resolve which plati.market links inside the description point to products
+    // we already host locally — we'll rewrite those to internal links.
+    const ids = new Set<string>();
+    const re = /plati\.market\/itm\/[^\s"'<>)]*?(\d{4,})/gi;
+    let m: RegExpExecArray | null;
+    const text = product.description ?? "";
+    while ((m = re.exec(text)) !== null) ids.add(m[1]);
+    let knownInternalIds: string[] = [];
+    if (ids.size > 0) {
+      try {
+        knownInternalIds = await getKnownDigisellerIds({ data: { ids: [...ids] } });
+      } catch {
+        knownInternalIds = [];
+      }
+    }
+    return { product, knownInternalIds };
   },
   head: ({ params, loaderData }) => {
     const p = loaderData?.product;
