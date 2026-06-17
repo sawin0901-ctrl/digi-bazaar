@@ -6,14 +6,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
-import { DigisellerWidget } from "@/components/marketplace/DigisellerWidget";
 import { productQO, productsQO, siteTextQO } from "@/lib/marketplace/queries";
 import { logClick } from "@/lib/marketplace/catalog.functions";
 import { Star, ShieldCheck, Zap, BadgeCheck, ShoppingBasket, Check, ChevronRight } from "lucide-react";
 import { useUsdRub, parseUsdAmount } from "@/hooks/use-usd-rub";
 
 const PARTNER_ID = "1459731";
-const SELLER_ID = "1459731";
 
 function withAffiliate(href: string): { href: string; isPartner: boolean } {
   try {
@@ -267,19 +265,7 @@ function ProductPage() {
                 </div>
               )}
 
-              {product.digiseller_id ? (
-                <div className="mt-5">
-                  <DigisellerWidget
-                    productId={product.digiseller_id}
-                    agentId={PARTNER_ID}
-                    sellerId={SELLER_ID}
-                    imgSize={180}
-                    showName
-                    showPrice
-                  />
-                </div>
-              ) : (
-                <div className="mt-5 flex items-stretch gap-2">
+              <div className="mt-5 flex items-stretch gap-2">
                   <button
                     type="button"
                     aria-label="В корзину"
@@ -302,8 +288,7 @@ function ProductPage() {
                   >
                     Купить сейчас
                   </a>
-                </div>
-              )}
+              </div>
 
               <p className="mt-3 text-xs text-muted-foreground">
                 Нажимая на кнопку, вы соглашаетесь с{" "}
