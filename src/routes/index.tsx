@@ -137,6 +137,7 @@ function Index() {
                 <Link
                   key={c.slug}
                   to="/catalog"
+                  search={{ category: c.slug }}
                   className="group flex shrink-0 snap-start items-center gap-2.5 rounded-full border border-border bg-card/70 px-4 py-2.5 backdrop-blur transition hover:border-fuchsia-400/60 hover:bg-card hover:shadow-lg hover:shadow-fuchsia-500/10"
                 >
                   <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-500/20 via-fuchsia-500/20 to-cyan-500/20 text-foreground transition group-hover:from-violet-500/40 group-hover:to-cyan-500/40">
@@ -165,6 +166,7 @@ function Index() {
               <Link
                 key={c.slug}
                 to="/catalog"
+                search={{ category: c.slug }}
                 className="group relative isolate overflow-hidden rounded-3xl border border-border bg-card transition hover:-translate-y-1 hover:border-fuchsia-400/50 hover:shadow-2xl hover:shadow-fuchsia-500/20"
               >
                 <div className="aspect-[5/4] overflow-hidden">
