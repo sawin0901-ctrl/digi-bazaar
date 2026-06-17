@@ -532,6 +532,13 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       if (pd.image) patch.image = pd.image;
       const { error } = await supabaseAdmin.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
+      // Enqueue plati links from updated description
+      try {
+        const linkedIds = extractPlatiItemIds(patch.description ?? "").filter((x) => x !== p.digiseller_id);
+        await enqueuePlatiIds(linkedIds, p.id);
+      } catch (e) {
+        console.error("[sync] enqueue plati links failed", e);
+      }
       // SEO regen if not locked
       try {
         const { data: cur } = await supabaseAdmin
