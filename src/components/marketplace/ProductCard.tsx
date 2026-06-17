@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 import type { ProductDTO } from "@/lib/marketplace/catalog.functions";
-import { DigisellerWidget } from "./DigisellerWidget";
 
 const badgeStyle: Record<string, string> = {
   HOT: "bg-gradient-to-r from-orange-500 to-rose-500 text-white",
@@ -9,9 +8,6 @@ const badgeStyle: Record<string, string> = {
   "-50%": "bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white",
   "ТОП": "bg-gradient-to-r from-amber-400 to-orange-500 text-white",
 };
-
-const PARTNER_ID = "1459731";
-const SELLER_ID = "1459731";
 
 export function ProductCard({ product }: { product: ProductDTO }) {
   const cls = "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:border-primary/50 hover:shadow-2xl hover:shadow-fuchsia-500/10";
