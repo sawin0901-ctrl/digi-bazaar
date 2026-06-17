@@ -277,7 +277,10 @@ function ProductPage() {
                 </div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold leading-tight tracking-tight md:text-[28px]">{product.title}</h1>
+                <h1 className="text-2xl font-bold leading-tight tracking-tight md:text-[28px]">{product.seo_h1 || product.title}</h1>
+                {product.short_description && (
+                  <p className="mt-2 text-sm text-muted-foreground">{product.short_description}</p>
+                )}
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                   <span>Продано <b className="text-foreground">{product.sales.toLocaleString("ru-RU")}</b></span>
                   <span className="text-border">•</span>
