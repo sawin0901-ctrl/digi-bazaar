@@ -130,6 +130,7 @@ export type Database = {
           digiseller_id: string | null
           id: string
           image: string
+          images: Json
           in_stock: boolean
           is_active: boolean
           last_synced_at: string | null
@@ -145,6 +146,7 @@ export type Database = {
           title: string
           updated_at: string
           variant_label: string | null
+          videos: Json
         }
         Insert: {
           badge?: string | null
@@ -157,6 +159,7 @@ export type Database = {
           digiseller_id?: string | null
           id?: string
           image?: string
+          images?: Json
           in_stock?: boolean
           is_active?: boolean
           last_synced_at?: string | null
@@ -172,6 +175,7 @@ export type Database = {
           title: string
           updated_at?: string
           variant_label?: string | null
+          videos?: Json
         }
         Update: {
           badge?: string | null
@@ -184,6 +188,7 @@ export type Database = {
           digiseller_id?: string | null
           id?: string
           image?: string
+          images?: Json
           in_stock?: boolean
           is_active?: boolean
           last_synced_at?: string | null
@@ -199,6 +204,7 @@ export type Database = {
           title?: string
           updated_at?: string
           variant_label?: string | null
+          videos?: Json
         }
         Relationships: [
           {
