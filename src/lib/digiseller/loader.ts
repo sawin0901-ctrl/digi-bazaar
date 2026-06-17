@@ -48,7 +48,7 @@ function buildScriptSrc(sellerId: string): string {
   const cart = getDigisellerCookie("cart_uid");
   const langParam = lang ? "&lang=" + lang : "";
   const cartParam = cart ? "&cart_uid=" + cart : "";
-  return `//digiseller.com/store2/digiseller-api.js.asp?seller_id=${sellerId}${langParam}${cartParam}`;
+  return `https://digiseller.com/store2/digiseller-api.js.asp?seller_id=${sellerId}${langParam}${cartParam}`;
 }
 
 function hasDigisellerGlobal(): boolean {
@@ -62,7 +62,7 @@ function injectCss(sellerId: string) {
   link.type = "text/css";
   link.rel = "stylesheet";
   link.id = CSS_ID;
-  link.href = `//shop.digiseller.com/xml/store2_css.asp?seller_id=${sellerId}`;
+  link.href = `https://shop.digiseller.com/xml/store2_css.asp?seller_id=${sellerId}`;
   document.head.appendChild(link);
 }
 
@@ -195,7 +195,9 @@ export function invokeDigiseller(container: HTMLElement, options?: { silent?: bo
     }
     return invoked;
   } catch (err) {
-    if (!options?.silent) error("DigiSeller(container) threw", { err: String(err) });
+    if (!options?.silent && !String(err).includes("reading 'loading'")) {
+      error("DigiSeller(container) threw", { err: String(err) });
+    }
     return false;
   }
 }
