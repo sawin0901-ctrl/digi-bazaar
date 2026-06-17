@@ -14,8 +14,8 @@ export function ProductCard({ product }: { product: ProductDTO }) {
   const cls = "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:border-primary/50 hover:shadow-2xl hover:shadow-fuchsia-500/10";
   const inner: ReactNode = (
     <>
-      <div className="relative aspect-square overflow-hidden bg-muted">
-        <img src={product.image} alt={product.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" loading="lazy" />
+      <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-muted p-3">
+        <img src={product.image} alt={product.title} className="h-full w-full object-contain transition duration-500 group-hover:scale-105" loading="lazy" />
         {product.badge && (
           <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow-lg ${badgeStyle[product.badge] ?? "bg-primary text-primary-foreground"}`}>
             {product.badge}
