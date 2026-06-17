@@ -267,7 +267,8 @@ function ProductPage() {
                       >
                         <img
                           src={src}
-                          alt={`Миниатюра ${i + 1}`}
+                          alt={altFor(src, `Миниатюра ${i + 1}`)}
+                          title={titleFor(src, product.title)}
                           className="h-16 w-16 object-cover"
                         />
                       </button>
@@ -277,7 +278,8 @@ function ProductPage() {
                 <div className="flex w-full max-w-[340px] items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted p-3">
                   <img
                     src={allImages[activeImage] ?? product.image}
-                    alt={product.title}
+                    alt={altFor(allImages[activeImage] ?? product.image, product.seo_h1 || product.title)}
+                    title={titleFor(allImages[activeImage] ?? product.image, product.title)}
                     className="h-auto w-full object-contain"
                   />
                 </div>
@@ -470,7 +472,8 @@ function ProductPage() {
                           >
                             <img
                               src={src}
-                              alt={`Изображение ${i + 1}`}
+                              alt={altFor(src, `${product.title} — изображение ${i + 1}`)}
+                              title={titleFor(src, product.title)}
                               loading="lazy"
                               className="h-64 w-full object-contain transition hover:scale-[1.02]"
                             />
