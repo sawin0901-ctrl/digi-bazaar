@@ -336,6 +336,61 @@ function ProductPage() {
 
             {tab === "description" && (
               <div className="prose prose-sm mt-5 max-w-3xl dark:prose-invert prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary">
+                {product.full_description && (
+                  <div className="not-prose mb-6 space-y-3 text-sm leading-relaxed text-foreground/90">
+                    {product.full_description.split(/\n\n+/).map((para, i) => (
+                      <p key={i}>{para}</p>
+                    ))}
+                  </div>
+                )}
+                {product.advantages.length > 0 && (
+                  <div className="not-prose mb-6">
+                    <h2 className="mb-3 text-lg font-bold">Преимущества</h2>
+                    <ul className="grid gap-2 sm:grid-cols-2">
+                      {product.advantages.map((a, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                          <span>{a}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {product.features.length > 0 && (
+                  <div className="not-prose mb-6">
+                    <h2 className="mb-3 text-lg font-bold">Особенности</h2>
+                    <ul className="space-y-1.5 text-sm text-foreground/90">
+                      {product.features.map((f, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <Zap className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {product.instructions && (
+                  <div className="not-prose mb-6">
+                    <h2 className="mb-3 text-lg font-bold">Инструкция по использованию</h2>
+                    <div className="space-y-2 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
+                      {product.instructions}
+                    </div>
+                  </div>
+                )}
+                {product.faq.length > 0 && (
+                  <div className="not-prose mb-6">
+                    <h2 className="mb-3 text-lg font-bold">Часто задаваемые вопросы</h2>
+                    <div className="space-y-3">
+                      {product.faq.map((q, i) => (
+                        <details key={i} className="group rounded-xl border border-border bg-background/50 p-4">
+                          <summary className="cursor-pointer text-sm font-semibold">{q.question}</summary>
+                          <p className="mt-2 text-sm text-muted-foreground">{q.answer}</p>
+                        </details>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {!product.full_description && (
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -368,6 +423,7 @@ function ProductPage() {
                 >
                   {cleanDescription}
                 </ReactMarkdown>
+                )}
               </div>
             )}
 
