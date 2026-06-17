@@ -6,7 +6,6 @@ const CSS_ID = "digiseller-css";
 function ensureScriptLoaded(sellerId: string) {
   if (typeof document === "undefined") return;
 
-  // CSS
   if (!document.getElementById(CSS_ID)) {
     const link = document.createElement("link");
     link.type = "text/css";
@@ -17,7 +16,6 @@ function ensureScriptLoaded(sellerId: string) {
     head.appendChild(link);
   }
 
-  // JS
   if (!document.getElementById(SCRIPT_ID)) {
     const script = document.createElement("script");
     script.async = true;
@@ -32,20 +30,12 @@ interface DigisellerWidgetProps {
   productId: string;
   agentId: string;
   sellerId: string;
-  imgSize?: number;
-  showName?: boolean;
-  showPrice?: boolean;
-  showImage?: boolean;
 }
 
 export function DigisellerWidget({
   productId,
   agentId,
   sellerId,
-  imgSize = 180,
-  showName = true,
-  showPrice = true,
-  showImage = true,
 }: DigisellerWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -55,7 +45,6 @@ export function DigisellerWidget({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // Try to re-initialize if the Digiseller API is already loaded
     const w = window as unknown as Record<string, unknown>;
     if (typeof w.DigiSeller === "function" && containerRef.current) {
       try {
@@ -66,18 +55,11 @@ export function DigisellerWidget({
     }
   }, [productId, agentId]);
 
+  const html = `<div style="display: inline-block;" class="digiseller-buy-standalone" data-id="${productId}" data-ai="${agentId}" data-img="0" data-img-size="" data-name="1" data-price="1" data-no-price="0"></div>`;
+
   return (
     <div ref={containerRef} className="w-full">
-      <div
-        className="digiseller-buy-standalone"
-        data-id={productId}
-        data-ai={agentId}
-        data-img={showImage ? "1" : "0"}
-        data-img-size={imgSize}
-        data-name={showName ? "1" : "0"}
-        data-price={showPrice ? "1" : "0"}
-        data-no-price="0"
-      />
+      <div dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
 }

@@ -252,10 +252,6 @@ function ProductPage() {
                   productId={String(product.digiseller_id)}
                   agentId={PARTNER_ID}
                   sellerId={SELLER_ID}
-                  showName={true}
-                  showPrice={true}
-                  showImage={true}
-                  imgSize={220}
                 />
               </div>
             ) : (
