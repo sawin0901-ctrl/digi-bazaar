@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ChevronRight, Gamepad2, Gem, Smartphone, Globe, Terminal, X } from "lucide-react";
+import { ChevronRight, Gamepad2, Gem, Smartphone, Globe, Terminal, X, Search } from "lucide-react";
 import type { CategoryDTO } from "@/lib/marketplace/catalog.functions";
 
 type Group = {
