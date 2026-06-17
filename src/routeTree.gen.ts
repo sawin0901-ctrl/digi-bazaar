@@ -20,6 +20,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminImportQueueRouteImport } from './routes/_authenticated/admin-import-queue'
+import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_authenticated/admin-availability'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicRatesRouteImport } from './routes/api/public/rates'
 import { Route as ApiPublicHooksProcessImportQueueRouteImport } from './routes/api/public/hooks/process-import-queue'
@@ -82,6 +83,12 @@ const AuthenticatedAdminImportQueueRoute =
     path: '/admin-import-queue',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminAvailabilityRoute =
+  AuthenticatedAdminAvailabilityRouteImport.update({
+    id: '/admin-availability',
+    path: '/admin-availability',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -127,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/reviews': typeof ReviewsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/admin-availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/rates': typeof ApiPublicRatesRoute
@@ -145,6 +153,7 @@ export interface FileRoutesByTo {
   '/reviews': typeof ReviewsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/admin-availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/rates': typeof ApiPublicRatesRoute
@@ -165,6 +174,7 @@ export interface FileRoutesById {
   '/reviews': typeof ReviewsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/admin-availability': typeof AuthenticatedAdminAvailabilityRoute
   '/_authenticated/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/rates': typeof ApiPublicRatesRoute
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/sitemap.xml'
     | '/admin'
+    | '/admin-availability'
     | '/admin-import-queue'
     | '/product/$slug'
     | '/api/public/rates'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/sitemap.xml'
     | '/admin'
+    | '/admin-availability'
     | '/admin-import-queue'
     | '/product/$slug'
     | '/api/public/rates'
@@ -222,6 +234,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/sitemap.xml'
     | '/_authenticated/admin'
+    | '/_authenticated/admin-availability'
     | '/_authenticated/admin-import-queue'
     | '/product/$slug'
     | '/api/public/rates'
@@ -328,6 +341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminImportQueueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin-availability': {
+      id: '/_authenticated/admin-availability'
+      path: '/admin-availability'
+      fullPath: '/admin-availability'
+      preLoaderRoute: typeof AuthenticatedAdminAvailabilityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -375,11 +395,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAdminAvailabilityRoute: typeof AuthenticatedAdminAvailabilityRoute
   AuthenticatedAdminImportQueueRoute: typeof AuthenticatedAdminImportQueueRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAdminAvailabilityRoute: AuthenticatedAdminAvailabilityRoute,
   AuthenticatedAdminImportQueueRoute: AuthenticatedAdminImportQueueRoute,
 }
 
