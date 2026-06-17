@@ -78,7 +78,9 @@ export const Route = createFileRoute("/api/public/rates")({
     handlers: {
       GET: async () => {
         const now = Date.now();
-        if (!cache || now - cache.at > TTL_MS) {
+        const stale = !cache || now - cache.at > TTL_MS;
+        const incomplete = cache && cache.data.btc == null;
+        if (stale || incomplete) {
           try {
             cache = { at: now, data: await fetchRates() };
           } catch {
