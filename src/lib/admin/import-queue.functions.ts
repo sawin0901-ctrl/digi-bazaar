@@ -26,7 +26,17 @@ export const adminListImportQueue = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{
     rows: ImportQueueRow[];
-    stats: { pending: number; done: number; failed: number; total: number };
+    stats: {
+      pending: number;
+      done: number;
+      failed: number;
+      total: number;
+      doneToday: number;
+      failedToday: number;
+      dailyCap: number;
+      remainingToday: number;
+      lastImportAt: string | null;
+    };
   }> => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -37,11 +47,39 @@ export const adminListImportQueue = createServerFn({ method: "GET" })
       .limit(300);
     if (error) throw new Error(error.message);
     const rows = (data ?? []) as ImportQueueRow[];
+    const since = new Date();
+    since.setUTCHours(0, 0, 0, 0);
+    const sinceIso = since.toISOString();
+    const [{ count: doneToday }, { count: failedToday }, { data: lastRow }] = await Promise.all([
+      supabaseAdmin
+        .from("product_import_queue")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "done")
+        .gte("processed_at", sinceIso),
+      supabaseAdmin
+        .from("product_import_queue")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "failed")
+        .gte("processed_at", sinceIso),
+      supabaseAdmin
+        .from("product_import_queue")
+        .select("processed_at")
+        .eq("status", "done")
+        .order("processed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    const DAILY_CAP = 200;
     const stats = {
       pending: rows.filter((r) => r.status === "pending").length,
       done: rows.filter((r) => r.status === "done").length,
       failed: rows.filter((r) => r.status === "failed").length,
       total: rows.length,
+      doneToday: doneToday ?? 0,
+      failedToday: failedToday ?? 0,
+      dailyCap: DAILY_CAP,
+      remainingToday: Math.max(0, DAILY_CAP - (doneToday ?? 0)),
+      lastImportAt: lastRow?.processed_at ?? null,
     };
     return { rows, stats };
   });
