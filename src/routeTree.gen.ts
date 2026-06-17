@@ -19,6 +19,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiPublicHooksDigisellerImportRouteImport } from './routes/api/public/hooks/digiseller-import'
 
 const ReviewsRoute = ReviewsRouteImport.update({
   id: '/reviews',
@@ -69,6 +70,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicHooksDigisellerImportRoute =
+  ApiPublicHooksDigisellerImportRouteImport.update({
+    id: '/api/public/hooks/digiseller-import',
+    path: '/api/public/hooks/digiseller-import',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/reviews': typeof ReviewsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,6 +99,7 @@ export interface FileRoutesByTo {
   '/reviews': typeof ReviewsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +113,7 @@ export interface FileRoutesById {
   '/reviews': typeof ReviewsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/admin'
     | '/product/$slug'
+    | '/api/public/hooks/digiseller-import'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/admin'
     | '/product/$slug'
+    | '/api/public/hooks/digiseller-import'
   id:
     | '__root__'
     | '/'
@@ -140,6 +152,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/_authenticated/admin'
     | '/product/$slug'
+    | '/api/public/hooks/digiseller-import'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -152,6 +165,7 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   ReviewsRoute: typeof ReviewsRoute
   ProductSlugRoute: typeof ProductSlugRoute
+  ApiPublicHooksDigisellerImportRoute: typeof ApiPublicHooksDigisellerImportRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -226,6 +240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/digiseller-import': {
+      id: '/api/public/hooks/digiseller-import'
+      path: '/api/public/hooks/digiseller-import'
+      fullPath: '/api/public/hooks/digiseller-import'
+      preLoaderRoute: typeof ApiPublicHooksDigisellerImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -250,6 +271,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   ReviewsRoute: ReviewsRoute,
   ProductSlugRoute: ProductSlugRoute,
+  ApiPublicHooksDigisellerImportRoute: ApiPublicHooksDigisellerImportRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
