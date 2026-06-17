@@ -77,6 +77,47 @@ export type Database = {
         }
         Relationships: []
       }
+      product_import_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          digiseller_id: string
+          id: string
+          last_error: string | null
+          processed_at: string | null
+          source_product_id: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          digiseller_id: string
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          source_product_id?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          digiseller_id?: string
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          source_product_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_import_queue_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           created_at: string
