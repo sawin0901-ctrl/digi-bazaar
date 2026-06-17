@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { categoriesQO, productsQO } from "@/lib/marketplace/queries";
 
 export const Route = createFileRoute("/catalog")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    category: typeof s.category === "string" ? s.category : undefined,
+  }),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(categoriesQO()),
@@ -32,8 +35,10 @@ export const Route = createFileRoute("/catalog")({
 function CatalogPage() {
   const { data: categories } = useSuspenseQuery(categoriesQO());
   const { data: products } = useSuspenseQuery(productsQO());
-  const [cat, setCat] = useState<string>("all");
+  const search = Route.useSearch();
+  const [cat, setCat] = useState<string>(search.category ?? "all");
   const [sort, setSort] = useState<string>("popular");
+  useEffect(() => { if (search.category) setCat(search.category); }, [search.category]);
 
   const list = useMemo(() => {
     let arr = cat === "all" ? products : products.filter((p) => p.category_slug === cat);
