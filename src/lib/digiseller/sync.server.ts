@@ -439,6 +439,20 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       if (pd.image) patch.image = pd.image;
       const { error } = await supabaseAdmin.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
+      // SEO regen if not locked
+      try {
+        const { data: cur } = await supabaseAdmin
+          .from("products")
+          .select("seo_locked")
+          .eq("id", p.id)
+          .maybeSingle();
+        if (cur && !cur.seo_locked) {
+          const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
+          await generateAndSaveSeoForProduct(p.id);
+        }
+      } catch (e) {
+        console.error("[sync] seo regen failed", e);
+      }
     } catch (e) {
       console.error("sync failed for", p.digiseller_id, e);
     }
