@@ -18,8 +18,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
+import { Route as AuthenticatedAdminImportQueueRouteImport } from './routes/_authenticated/admin-import-queue'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedAdminImportQueueRouteImport } from './routes/_authenticated/admin.import-queue'
 import { Route as ApiPublicHooksProcessImportQueueRouteImport } from './routes/api/public/hooks/process-import-queue'
 import { Route as ApiPublicHooksDigisellerSyncRouteImport } from './routes/api/public/hooks/digiseller-sync'
 import { Route as ApiPublicHooksDigisellerImportRouteImport } from './routes/api/public/hooks/digiseller-import'
@@ -68,17 +68,17 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
   path: '/product/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminImportQueueRoute =
+  AuthenticatedAdminImportQueueRouteImport.update({
+    id: '/admin-import-queue',
+    path: '/admin-import-queue',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAdminImportQueueRoute =
-  AuthenticatedAdminImportQueueRouteImport.update({
-    id: '/import-queue',
-    path: '/import-queue',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
 const ApiPublicHooksProcessImportQueueRoute =
   ApiPublicHooksProcessImportQueueRouteImport.update({
     id: '/api/public/hooks/process-import-queue',
@@ -106,9 +106,9 @@ export interface FileRoutesByFullPath {
   '/deals': typeof DealsRoute
   '/faq': typeof FaqRoute
   '/reviews': typeof ReviewsRoute
-  '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/admin': typeof AuthenticatedAdminRoute
+  '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
-  '/admin/import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -121,9 +121,9 @@ export interface FileRoutesByTo {
   '/deals': typeof DealsRoute
   '/faq': typeof FaqRoute
   '/reviews': typeof ReviewsRoute
-  '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/admin': typeof AuthenticatedAdminRoute
+  '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
-  '/admin/import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -138,9 +138,9 @@ export interface FileRoutesById {
   '/deals': typeof DealsRoute
   '/faq': typeof FaqRoute
   '/reviews': typeof ReviewsRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
-  '/_authenticated/admin/import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -156,8 +156,8 @@ export interface FileRouteTypes {
     | '/faq'
     | '/reviews'
     | '/admin'
+    | '/admin-import-queue'
     | '/product/$slug'
-    | '/admin/import-queue'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -171,8 +171,8 @@ export interface FileRouteTypes {
     | '/faq'
     | '/reviews'
     | '/admin'
+    | '/admin-import-queue'
     | '/product/$slug'
-    | '/admin/import-queue'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -187,8 +187,8 @@ export interface FileRouteTypes {
     | '/faq'
     | '/reviews'
     | '/_authenticated/admin'
+    | '/_authenticated/admin-import-queue'
     | '/product/$slug'
-    | '/_authenticated/admin/import-queue'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -274,19 +274,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin-import-queue': {
+      id: '/_authenticated/admin-import-queue'
+      path: '/admin-import-queue'
+      fullPath: '/admin-import-queue'
+      preLoaderRoute: typeof AuthenticatedAdminImportQueueRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/import-queue': {
-      id: '/_authenticated/admin/import-queue'
-      path: '/import-queue'
-      fullPath: '/admin/import-queue'
-      preLoaderRoute: typeof AuthenticatedAdminImportQueueRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/api/public/hooks/process-import-queue': {
       id: '/api/public/hooks/process-import-queue'
@@ -312,23 +312,14 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedAdminRouteChildren {
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAdminImportQueueRoute: typeof AuthenticatedAdminImportQueueRoute
 }
 
-const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
-  AuthenticatedAdminImportQueueRoute: AuthenticatedAdminImportQueueRoute,
-}
-
-const AuthenticatedAdminRouteWithChildren =
-  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
-
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
-}
-
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAdminImportQueueRoute: AuthenticatedAdminImportQueueRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

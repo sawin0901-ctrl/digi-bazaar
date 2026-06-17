@@ -12,7 +12,7 @@ import {
 } from "@/lib/admin/import-queue.functions";
 import { Play, Trash2, RefreshCw, Plus } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/admin/import-queue")({
+export const Route = createFileRoute("/_authenticated/admin-import-queue")({
   head: () => ({ meta: [{ title: "Очередь импорта — DIGIVAULT" }] }),
   component: ImportQueuePage,
 });
