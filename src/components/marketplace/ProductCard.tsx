@@ -39,18 +39,13 @@ export function ProductCard({ product }: { product: ProductDTO }) {
             <div className="text-xl font-bold tracking-tight">{product.price.toLocaleString("ru-RU")} ₽</div>
             {product.old_price && <div className="text-xs text-muted-foreground line-through">{product.old_price.toLocaleString("ru-RU")} ₽</div>}
           </div>
-          {product.digiseller_id ? (
-            <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-              <DigisellerWidget
-                productId={product.digiseller_id}
-                agentId={PARTNER_ID}
-                sellerId={SELLER_ID}
-                compact
-              />
-            </div>
-          ) : (
-            <span className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition group-hover:bg-primary/90">Купить</span>
-          )}
+          <Link
+            to="/product/$slug"
+            params={{ slug: product.slug }}
+            className="flex-shrink-0 rounded-lg bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-fuchsia-500/20 transition hover:opacity-90"
+          >
+            Купить
+          </Link>
         </div>
       </div>
     </div>
