@@ -6,12 +6,14 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
+import { DigisellerWidget } from "@/components/marketplace/DigisellerWidget";
 import { productQO, productsQO, siteTextQO } from "@/lib/marketplace/queries";
 import { logClick } from "@/lib/marketplace/catalog.functions";
 import { Star, ShieldCheck, Zap, BadgeCheck, ShoppingBasket, Check, ChevronRight } from "lucide-react";
 import { useUsdRub, parseUsdAmount } from "@/hooks/use-usd-rub";
 
 const PARTNER_ID = "1459731";
+const SELLER_ID = "1459731";
 
 function withAffiliate(href: string): { href: string; isPartner: boolean } {
   try {
@@ -265,30 +267,43 @@ function ProductPage() {
                 </div>
               )}
 
-              <div className="mt-5 flex items-stretch gap-2">
-                <button
-                  type="button"
-                  aria-label="В корзину"
-                  className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-border bg-background text-foreground transition hover:bg-muted"
-                >
-                  <ShoppingBasket className="h-5 w-5" />
-                </button>
-                <a
-                  href={canBuy ? buyHref : undefined}
-                  target="_blank"
-                  rel="noopener nofollow sponsored"
-                  aria-disabled={!canBuy}
-                  onClick={(e) => { if (!canBuy) { e.preventDefault(); return; } handleBuy(); }}
-                  className={
-                    "flex-1 rounded-xl py-3 text-center text-sm font-semibold transition " +
-                    (canBuy
-                      ? "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 text-white shadow-lg shadow-fuchsia-500/30 hover:opacity-90"
-                      : "cursor-not-allowed bg-muted text-muted-foreground")
-                  }
-                >
-                  Купить сейчас
-                </a>
-              </div>
+              {product.digiseller_id ? (
+                <div className="mt-5">
+                  <DigisellerWidget
+                    productId={product.digiseller_id}
+                    agentId={PARTNER_ID}
+                    sellerId={SELLER_ID}
+                    imgSize={180}
+                    showName
+                    showPrice
+                  />
+                </div>
+              ) : (
+                <div className="mt-5 flex items-stretch gap-2">
+                  <button
+                    type="button"
+                    aria-label="В корзину"
+                    className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-border bg-background text-foreground transition hover:bg-muted"
+                  >
+                    <ShoppingBasket className="h-5 w-5" />
+                  </button>
+                  <a
+                    href={canBuy ? buyHref : undefined}
+                    target="_blank"
+                    rel="noopener nofollow sponsored"
+                    aria-disabled={!canBuy}
+                    onClick={(e) => { if (!canBuy) { e.preventDefault(); return; } handleBuy(); }}
+                    className={
+                      "flex-1 rounded-xl py-3 text-center text-sm font-semibold transition " +
+                      (canBuy
+                        ? "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 text-white shadow-lg shadow-fuchsia-500/30 hover:opacity-90"
+                        : "cursor-not-allowed bg-muted text-muted-foreground")
+                    }
+                  >
+                    Купить сейчас
+                  </a>
+                </div>
+              )}
 
               <p className="mt-3 text-xs text-muted-foreground">
                 Нажимая на кнопку, вы соглашаетесь с{" "}
