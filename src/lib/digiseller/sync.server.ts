@@ -245,11 +245,17 @@ export async function importDigisellerProductById(
       { onConflict: "slug" },
     );
 
-  // Description: always generate a clean unique text via Lovable AI.
-  // Fallback to a sanitized version of Digiseller's own info if AI is unavailable.
-  let description = await generateUniqueDescription(title, catSlug);
-  if (!description) description = sanitizeDigisellerHtml(pd.info ?? "");
-  if (!description) description = sanitizeDigisellerHtml(pd.add_info ?? "");
+  // Description: prefer the real product description from plati.market / Digiseller
+  // (info = описание, add_info = инструкция/правила покупки). Fall back to an
+  // AI-generated unique blurb only if Digiseller returned nothing.
+  const info = sanitizeDigisellerHtml(pd.info ?? "");
+  const addInfo = sanitizeDigisellerHtml(pd.add_info ?? "");
+  let description = "";
+  if (info) description += info;
+  if (addInfo) {
+    description += (description ? "\n\n" : "") + "Инструкция и правила покупки\n\n" + addInfo;
+  }
+  if (!description) description = await generateUniqueDescription(title, catSlug);
 
   const { data: existing } = await supabaseAdmin
     .from("products")
