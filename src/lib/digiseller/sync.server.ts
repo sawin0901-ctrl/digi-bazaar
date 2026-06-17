@@ -222,6 +222,31 @@ export async function processOneFromImportQueue(): Promise<
     .maybeSingle();
   if (!row) return { processed: false };
   try {
+    // Pre-check availability via the same signals used by the auto-availability
+    // cron (Digiseller API + plati.market page scrape). If the item is already
+    // unavailable, drop it from the queue immediately instead of importing a
+    // dead card.
+    const { fetchVerdictForId } = await import("./availability.server");
+    const verdict = await fetchVerdictForId(row.digiseller_id);
+    if (!verdict.available) {
+      await supabaseAdmin
+        .from("product_import_queue")
+        .delete()
+        .eq("id", row.id);
+      await supabaseAdmin.from("product_availability_log").insert({
+        product_id: null,
+        digiseller_id: row.digiseller_id,
+        slug: null,
+        event: "deleted",
+        reason: `queue_skip:${verdict.reason}`,
+      });
+      return {
+        processed: true,
+        digiseller_id: row.digiseller_id,
+        ok: false,
+        error: `skipped: ${verdict.reason}`,
+      };
+    }
     await importDigisellerProductById(row.digiseller_id, null);
     await supabaseAdmin
       .from("product_import_queue")
