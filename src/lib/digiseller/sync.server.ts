@@ -141,9 +141,32 @@ async function fetchPlatiTopCategory(itemId: string): Promise<{ slug: string; na
 
 async function ensureCategoryRow(slug: string, name: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  await supabaseAdmin
+  // Insert only when missing; don't clobber name/image/sort_order if a curated
+  // row already exists for this slug.
+  const { data: existing } = await supabaseAdmin
     .from("categories")
-    .upsert([{ slug, name, is_active: true }], { onConflict: "slug" });
+    .select("slug")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!existing) {
+    await supabaseAdmin
+      .from("categories")
+      .insert({ slug, name, is_active: true });
+  }
+}
+
+/** Backfill category.image from a product image if the category has none yet. */
+async function ensureCategoryImage(slug: string, image: string | null) {
+  if (!image) return;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: cat } = await supabaseAdmin
+    .from("categories")
+    .select("slug,image")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (cat && !cat.image) {
+    await supabaseAdmin.from("categories").update({ image }).eq("slug", slug);
+  }
 }
 
 /** Extract numeric plati.market itm IDs from arbitrary text/HTML. */
@@ -508,6 +531,10 @@ export async function importDigisellerProductById(
     const { error } = await supabaseAdmin.from("products").insert(payload);
     if (error) throw new Error(error.message);
   }
+
+  // If the resolved category has no cover image yet, use this product's image
+  // so new auto-created categories aren't blank on the home grid.
+  await ensureCategoryImage(catSlug, image);
 
   // Generate SEO in background (don't block import on AI latency/errors)
   try {
