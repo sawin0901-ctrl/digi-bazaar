@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as DealsRouteImport } from './routes/deals'
@@ -26,6 +27,11 @@ import { Route as ApiPublicHooksDigisellerSyncRouteImport } from './routes/api/p
 import { Route as ApiPublicHooksDigisellerImportRouteImport } from './routes/api/public/hooks/digiseller-import'
 import { Route as ApiPublicHooksDigisellerAvailabilityRouteImport } from './routes/api/public/hooks/digiseller-availability'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReviewsRoute = ReviewsRouteImport.update({
   id: '/reviews',
   path: '/reviews',
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/deals': typeof DealsRoute
   '/faq': typeof FaqRoute
   '/reviews': typeof ReviewsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/deals': typeof DealsRoute
   '/faq': typeof FaqRoute
   '/reviews': typeof ReviewsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/deals': typeof DealsRoute
   '/faq': typeof FaqRoute
   '/reviews': typeof ReviewsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/faq'
     | '/reviews'
+    | '/sitemap.xml'
     | '/admin'
     | '/admin-import-queue'
     | '/product/$slug'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/faq'
     | '/reviews'
+    | '/sitemap.xml'
     | '/admin'
     | '/admin-import-queue'
     | '/product/$slug'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/faq'
     | '/reviews'
+    | '/sitemap.xml'
     | '/_authenticated/admin'
     | '/_authenticated/admin-import-queue'
     | '/product/$slug'
@@ -228,6 +240,7 @@ export interface RootRouteChildren {
   DealsRoute: typeof DealsRoute
   FaqRoute: typeof FaqRoute
   ReviewsRoute: typeof ReviewsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ProductSlugRoute: typeof ProductSlugRoute
   ApiPublicRatesRoute: typeof ApiPublicRatesRoute
   ApiPublicHooksDigisellerAvailabilityRoute: typeof ApiPublicHooksDigisellerAvailabilityRoute
@@ -238,6 +251,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reviews': {
       id: '/reviews'
       path: '/reviews'
@@ -375,6 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   DealsRoute: DealsRoute,
   FaqRoute: FaqRoute,
   ReviewsRoute: ReviewsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   ProductSlugRoute: ProductSlugRoute,
   ApiPublicRatesRoute: ApiPublicRatesRoute,
   ApiPublicHooksDigisellerAvailabilityRoute:
