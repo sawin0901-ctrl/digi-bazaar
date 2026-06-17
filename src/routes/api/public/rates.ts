@@ -79,7 +79,7 @@ export const Route = createFileRoute("/api/public/rates")({
       GET: async () => {
         const now = Date.now();
         const stale = !cache || now - cache.at > TTL_MS;
-        const incomplete = cache && cache.data.btc == null;
+        const incomplete = !!cache && cache.data.btc == null;
         if (stale || incomplete) {
           try {
             cache = { at: now, data: await fetchRates() };
@@ -88,7 +88,7 @@ export const Route = createFileRoute("/api/public/rates")({
             if (!cache) cache = { at: now, data: { usd: null, eur: null, btc: null, updated_at: new Date().toISOString() } };
           }
         }
-        return new Response(JSON.stringify(cache.data), {
+        return new Response(JSON.stringify(cache!.data), {
           headers: {
             "Content-Type": "application/json",
             "Cache-Control": "public, max-age=300, s-maxage=600",
