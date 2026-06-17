@@ -9,7 +9,18 @@ interface DigisellerWidgetProps {
   compact?: boolean;
 }
 
-const RENDER_TIMEOUT = 5000;
+const RENDER_TIMEOUT = 8000;
+// Selectors that indicate the Digiseller standalone widget has actually
+// painted something inside our container. The script never adds
+// `.digiseller-buy`, so we look for any of the standalone markers.
+const READY_SELECTORS = [
+  ".digiseller-standalone-pay",
+  ".digiseller-standalone-img",
+  ".digiseller-standalone-description",
+  ".digiseller-price-val",
+  ".digiseller-cart-btn",
+  ".digiseller-button",
+].join(",");
 
 export function DigisellerWidget({
   productId,
@@ -26,38 +37,75 @@ export function DigisellerWidget({
     let timeoutTimer: number | null = null;
     setStatus("loading");
 
+    let observer: MutationObserver | null = null;
+
+    const markReady = () => {
+      if (cancelled) return;
+      setStatus("ready");
+      if (pollTimer != null) {
+        window.clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      if (timeoutTimer != null) {
+        window.clearTimeout(timeoutTimer);
+        timeoutTimer = null;
+      }
+      if (observer) {
+        observer.disconnect();
+        observer = null;
+      }
+    };
+
+    const checkRendered = (el: HTMLElement) => !!el.querySelector(READY_SELECTORS);
+
     const start = async () => {
       try {
         await ensureDigisellerScript(sellerId);
         if (cancelled) return;
 
+        const el = containerRef.current;
+        if (!el) return;
+
+        // Watch container for any rendered Digiseller markup.
+        observer = new MutationObserver(() => {
+          if (checkRendered(el)) markReady();
+        });
+        observer.observe(el, { childList: true, subtree: true });
+
         let tries = 0;
         const tryInvoke = () => {
           if (cancelled) return true;
-          const el = containerRef.current;
-          if (!el) return false;
-          if (invokeDigiseller(el)) {
-            // Consider it ready as soon as Digiseller starts populating DOM.
-            const ready = !!el.querySelector(".digiseller-buy");
-            if (ready) setStatus("ready");
-            return ready;
+          const invoked = invokeDigiseller(el);
+          if (checkRendered(el)) {
+            markReady();
+            return true;
           }
-          return false;
+          return invoked && tries > 4; // give DOM a few frames after first invoke
         };
         if (tryInvoke()) return;
         pollTimer = window.setInterval(() => {
           tries += 1;
-          if (tryInvoke() || tries > 40) {
-            if (pollTimer != null) window.clearInterval(pollTimer);
+          if (checkRendered(el)) {
+            markReady();
+            return;
+          }
+          invokeDigiseller(el);
+          if (tries > 40 && pollTimer != null) {
+            window.clearInterval(pollTimer);
             pollTimer = null;
-            // Even if we never observed rendered markup, hide skeleton.
-            if (!cancelled) setStatus("ready");
           }
         }, 250);
 
         timeoutTimer = window.setTimeout(() => {
           if (cancelled) return;
-          if (pollTimer != null) window.clearInterval(pollTimer);
+          if (checkRendered(el)) {
+            markReady();
+            return;
+          }
+          if (pollTimer != null) {
+            window.clearInterval(pollTimer);
+            pollTimer = null;
+          }
           setStatus((s) => (s === "ready" ? s : "error"));
         }, RENDER_TIMEOUT);
       } catch {
@@ -75,6 +123,7 @@ export function DigisellerWidget({
       cancelled = true;
       if (pollTimer != null) window.clearInterval(pollTimer);
       if (timeoutTimer != null) window.clearTimeout(timeoutTimer);
+      if (observer) observer.disconnect();
       if (ric) {
         const cic = (window as unknown as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
         cic?.(handle as number);
