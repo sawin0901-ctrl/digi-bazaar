@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, memo, useEffect, useRef, useState } from "react";
 import { ensureDigisellerScript, invokeDigiseller } from "@/lib/digiseller/loader";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -164,12 +164,14 @@ export function DigisellerWidget({
     };
   }, [productId, agentId, sellerId]);
 
-  const nameAttr = compact ? "0" : "1";
-  const priceAttr = compact ? "0" : "1";
-  const html = `<div style="display: inline-block;" class="digiseller-buy-standalone" data-id="${productId}" data-ai="${agentId}" data-img="0" data-img-size="" data-name="${nameAttr}" data-price="${priceAttr}" data-no-price="0"></div>`;
-
   return (
     <div className="digiseller-embed relative w-full">
+      <DigisellerHost
+        ref={containerRef}
+        productId={productId}
+        agentId={agentId}
+        compact={compact}
+      />
       {status === "loading" && (
         <div className="space-y-2" aria-hidden="true">
           <Skeleton className="h-6 w-32" />
@@ -181,12 +183,27 @@ export function DigisellerWidget({
           Виджет покупки временно недоступен. Обновите страницу или попробуйте позже.
         </div>
       )}
-      <div
-        ref={containerRef}
-        style={status === "ready" ? undefined : { position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", opacity: 0, pointerEvents: "none" }}
-      >
-        <div dangerouslySetInnerHTML={{ __html: html }} />
-      </div>
     </div>
   );
 }
+
+const DigisellerHost = memo(
+  forwardRef<HTMLDivElement, { productId: string; agentId: string; compact: boolean }>(
+    ({ productId, agentId, compact }, ref) => (
+      <div ref={ref}>
+        <div
+          style={{ display: "inline-block" }}
+          className="digiseller-buy-standalone"
+          data-id={productId}
+          data-ai={agentId}
+          data-img="0"
+          data-img-size=""
+          data-name={compact ? "0" : "1"}
+          data-price={compact ? "0" : "1"}
+          data-no-price="0"
+        />
+      </div>
+    ),
+  ),
+  (prev, next) => prev.productId === next.productId && prev.agentId === next.agentId && prev.compact === next.compact,
+);

@@ -79,14 +79,21 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
         console.warn(LOG, "script load failed — using fallback price", { productId, err: String(err) });
       });
 
+      const runHiddenWidget = () => {
+        if (cancelled) return false;
+        return invokeDigiseller(el, { silent: true });
+      };
+
       let invokeTries = 0;
-      invokeTimer = window.setInterval(() => {
-        invokeTries += 1;
-        if (invokeDigiseller(el) || invokeTries > 40) {
-          if (invokeTimer != null) window.clearInterval(invokeTimer);
-          invokeTimer = null;
-        }
-      }, 250);
+      if (!runHiddenWidget()) {
+        invokeTimer = window.setInterval(() => {
+          invokeTries += 1;
+          if (runHiddenWidget() || invokeTries > 12) {
+            if (invokeTimer != null) window.clearInterval(invokeTimer);
+            invokeTimer = null;
+          }
+        }, 250);
+      }
 
       if (read()) return;
       observer = new MutationObserver(() => {

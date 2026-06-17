@@ -25,7 +25,15 @@ function error(...args: unknown[]) {
   console.error(LOG_PREFIX, ...args);
 }
 
-type DigiSellerWin = Window & { DigiSeller?: (container?: HTMLElement) => void };
+type DigiSellerObject = {
+  inited?: boolean;
+  booted?: boolean;
+  init?: () => unknown;
+  boot?: () => unknown;
+  $?: (el: HTMLElement) => unknown;
+  widget?: { calc?: new (context: unknown) => unknown };
+};
+type DigiSellerWin = Window & { DigiSeller?: ((container?: HTMLElement) => void) | DigiSellerObject };
 
 const inflight = new Map<string, Promise<void>>();
 
@@ -43,6 +51,11 @@ function buildScriptSrc(sellerId: string): string {
   return `//digiseller.com/store2/digiseller-api.js.asp?seller_id=${sellerId}${langParam}${cartParam}`;
 }
 
+function hasDigisellerGlobal(): boolean {
+  const digi = (window as DigiSellerWin).DigiSeller;
+  return typeof digi === "function" || !!(digi && typeof digi === "object" && (typeof digi.boot === "function" || typeof digi.widget?.calc === "function"));
+}
+
 function injectCss(sellerId: string) {
   if (document.getElementById(CSS_ID)) return;
   const link = document.createElement("link");
@@ -56,7 +69,7 @@ function injectCss(sellerId: string) {
 function loadScriptOnce(sellerId: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
-    if (existing && (window as DigiSellerWin).DigiSeller) {
+    if (existing && hasDigisellerGlobal()) {
       log("script already present, DigiSeller global ready", { sellerId });
       resolve();
       return;
@@ -77,11 +90,25 @@ function loadScriptOnce(sellerId: string): Promise<void> {
       error("script load timeout", { sellerId, ms: LOAD_TIMEOUT_MS });
       reject(new Error("digiseller script timeout"));
     }, LOAD_TIMEOUT_MS);
+    const waitForGlobal = () => {
+      if (hasDigisellerGlobal()) {
+        cleanup();
+        log("DigiSeller global ready", { sellerId, type: typeof (window as DigiSellerWin).DigiSeller });
+        resolve();
+        return;
+      }
+      const poll = window.setInterval(() => {
+        if (!hasDigisellerGlobal()) return;
+        window.clearInterval(poll);
+        cleanup();
+        log("DigiSeller global ready after poll", { sellerId, type: typeof (window as DigiSellerWin).DigiSeller });
+        resolve();
+      }, 100);
+      window.setTimeout(() => window.clearInterval(poll), LOAD_TIMEOUT_MS);
+    };
     const onLoad = () => {
-      cleanup();
-      const hasGlobal = typeof (window as DigiSellerWin).DigiSeller === "function";
-      log("script onload", { sellerId, hasDigiSellerGlobal: hasGlobal });
-      resolve();
+      log("script onload", { sellerId, hasDigiSellerGlobal: hasDigisellerGlobal() });
+      waitForGlobal();
     };
     const onError = () => {
       cleanup();
@@ -97,16 +124,7 @@ function loadScriptOnce(sellerId: string): Promise<void> {
     script.addEventListener("load", onLoad);
     script.addEventListener("error", onError);
     // If script tag exists but DigiSeller global not yet ready, poll briefly.
-    if (existing) {
-      const poll = window.setInterval(() => {
-        if ((window as DigiSellerWin).DigiSeller) {
-          window.clearInterval(poll);
-          cleanup();
-          resolve();
-        }
-      }, 100);
-      window.setTimeout(() => window.clearInterval(poll), LOAD_TIMEOUT_MS);
-    }
+    if (existing) waitForGlobal();
   });
 }
 
@@ -148,13 +166,34 @@ export function ensureDigisellerScript(sellerId: string): Promise<void> {
   return p;
 }
 
-export function invokeDigiseller(container: HTMLElement): boolean {
+export function invokeDigiseller(container: HTMLElement, _options?: { silent?: boolean }): boolean {
   if (typeof window === "undefined") return false;
-  const fn = (window as DigiSellerWin).DigiSeller;
-  if (typeof fn !== "function") return false;
+  const digi = (window as DigiSellerWin).DigiSeller;
+  if (!digi) return false;
   try {
-    fn(container);
-    return true;
+    if (typeof digi === "function") {
+      digi(container);
+      return true;
+    }
+    digi.boot?.();
+    digi.init?.();
+    const Calc = digi.widget?.calc;
+    const $ = digi.$;
+    if (typeof Calc !== "function" || typeof $ !== "function") return false;
+    const targets = container.matches(".digiseller-buy-standalone")
+      ? [container]
+      : Array.from(container.querySelectorAll<HTMLElement>(".digiseller-buy-standalone"));
+    let invoked = false;
+    for (const target of targets) {
+      if (target.childElementCount > 0 || target.dataset.gameplazaDigisellerInvoked === "1") {
+        invoked = true;
+        continue;
+      }
+      target.dataset.gameplazaDigisellerInvoked = "1";
+      new Calc($(target));
+      invoked = true;
+    }
+    return invoked;
   } catch (err) {
     error("DigiSeller(container) threw", { err: String(err) });
     return false;
