@@ -282,18 +282,20 @@ export async function importDigisellerProductById(
 
   const inStock = pd.in_stock === undefined ? true : Boolean(pd.in_stock);
 
+  const stats = computeSellerStats(pd);
+
   const { error } = await supabaseAdmin.from("products").upsert(
     {
       slug,
       title,
       category_slug: catSlug,
-      seller: "plati.market",
-      seller_rating: 5,
+      seller: stats.sellerName,
+      seller_rating: stats.rating,
       price,
       old_price: null,
-      rating: 5,
-      reviews: 0,
-      sales: pd.cnt_sell ?? 0,
+      rating: stats.rating,
+      reviews: stats.reviews,
+      sales: stats.sales,
       image,
       badge: null,
       description,
