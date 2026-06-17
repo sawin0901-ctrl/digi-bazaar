@@ -115,6 +115,37 @@ function productUrl(id: number): string {
   return `https://plati.market/itm/${id}?ai=${AGENT_ID}`;
 }
 
+/** Fetch plati.market product page and extract the top-level catalog
+ *  breadcrumb (e.g. "Игры", "Программное обеспечение"). Returns null if
+ *  the page cannot be parsed.
+ */
+async function fetchPlatiTopCategory(itemId: string): Promise<{ slug: string; name: string } | null> {
+  try {
+    const res = await fetch(`https://plati.market/itm/${itemId}`, {
+      headers: { "User-Agent": "Mozilla/5.0", Accept: "text/html" },
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    // Crumbs look like: <a href="/cat/<slug>/<id>/"><span>Name</span></a>
+    const re = /<a[^>]+href="\/cat\/([^"\/]+)\/\d+\/?"[^>]*>\s*<span[^>]*>([^<]+)<\/span>\s*<\/a>/gi;
+    const m = re.exec(html);
+    if (!m) return null;
+    const slug = m[1].trim().toLowerCase();
+    const name = m[2].trim();
+    if (!slug || !name) return null;
+    return { slug: `plati-${slug}`, name };
+  } catch {
+    return null;
+  }
+}
+
+async function ensureCategoryRow(slug: string, name: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("categories")
+    .upsert([{ slug, name, is_active: true }], { onConflict: "slug" });
+}
+
 /** Extract numeric plati.market itm IDs from arbitrary text/HTML. */
 export function extractPlatiItemIds(text: string | null | undefined): string[] {
   if (!text) return [];
