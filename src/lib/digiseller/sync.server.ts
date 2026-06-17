@@ -150,7 +150,10 @@ async function ensureCategoryRow(slug: string, name: string) {
 export function extractPlatiItemIds(text: string | null | undefined): string[] {
   if (!text) return [];
   const out = new Set<string>();
-  const re = /plati\.market\/itm\/[^\s"'<>)]*?(\d{4,})/gi;
+  // plati.market product URLs are .../itm/<slug>/<numeric-id>. The slug itself
+  // can contain digits (e.g. "office-2024-..."), so anchor on the trailing
+  // numeric segment after the LAST slash of the path.
+  const re = /plati\.market\/itm\/[^\s"'<>)]+?\/(\d{3,})(?![\w-])/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) out.add(m[1]);
   return [...out];
