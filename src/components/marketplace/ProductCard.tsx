@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 import type { ProductDTO } from "@/lib/marketplace/catalog.functions";
+import type { ReactNode } from "react";
 
 const badgeStyle: Record<string, string> = {
   HOT: "bg-gradient-to-r from-orange-500 to-rose-500 text-white",
@@ -10,12 +11,9 @@ const badgeStyle: Record<string, string> = {
 };
 
 export function ProductCard({ product }: { product: ProductDTO }) {
-  return (
-    <Link
-      to="/product/$slug"
-      params={{ slug: product.slug }}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:border-primary/50 hover:shadow-2xl hover:shadow-fuchsia-500/10"
-    >
+  const cls = "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:border-primary/50 hover:shadow-2xl hover:shadow-fuchsia-500/10";
+  const inner: ReactNode = (
+    <>
       <div className="relative aspect-square overflow-hidden bg-muted">
         <img src={product.image} alt={product.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" loading="lazy" />
         {product.badge && (
@@ -40,6 +38,18 @@ export function ProductCard({ product }: { product: ProductDTO }) {
           <span className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition group-hover:bg-primary/90">Купить</span>
         </div>
       </div>
+    </>
+  );
+  if (product.external_url) {
+    return (
+      <a href={product.external_url} target="_blank" rel="noopener noreferrer" className={cls}>
+        {inner}
+      </a>
+    );
+  }
+  return (
+    <Link to="/product/$slug" params={{ slug: product.slug }} className={cls}>
+      {inner}
     </Link>
   );
 }

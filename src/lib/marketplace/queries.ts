@@ -5,6 +5,7 @@ import {
   getProductBySlug,
   getSiteText,
 } from "./catalog.functions";
+import { listDigisellerCategories, listDigisellerProducts } from "@/lib/digiseller/products.functions";
 
 export const categoriesQO = () =>
   queryOptions({
@@ -32,4 +33,18 @@ export const siteTextQO = (slug: string) =>
     queryKey: ["site_text", slug],
     queryFn: () => getSiteText({ data: { slug } }),
     staleTime: 5 * 60_000,
+  });
+
+export const digisellerCategoriesQO = () =>
+  queryOptions({
+    queryKey: ["digiseller", "categories"],
+    queryFn: () => listDigisellerCategories(),
+    staleTime: 10 * 60_000,
+  });
+
+export const digisellerProductsQO = (params?: { category?: string; page?: number; rows?: number }) =>
+  queryOptions({
+    queryKey: ["digiseller", "products", params ?? {}],
+    queryFn: () => listDigisellerProducts({ data: params ?? {} }),
+    staleTime: 60_000,
   });

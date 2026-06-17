@@ -3,7 +3,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
-import { categoriesQO, productsQO } from "@/lib/marketplace/queries";
+import { digisellerCategoriesQO, digisellerProductsQO } from "@/lib/marketplace/queries";
 
 export const Route = createFileRoute("/catalog")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -11,8 +11,8 @@ export const Route = createFileRoute("/catalog")({
   }),
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(categoriesQO()),
-      context.queryClient.ensureQueryData(productsQO()),
+      context.queryClient.ensureQueryData(digisellerCategoriesQO()),
+      context.queryClient.ensureQueryData(digisellerProductsQO()),
     ]);
   },
   head: () => ({
@@ -33,22 +33,23 @@ export const Route = createFileRoute("/catalog")({
 });
 
 function CatalogPage() {
-  const { data: categories } = useSuspenseQuery(categoriesQO());
-  const { data: products } = useSuspenseQuery(productsQO());
   const search = Route.useSearch();
   const [cat, setCat] = useState<string>(search.category ?? "all");
   const [sort, setSort] = useState<string>("popular");
   useEffect(() => { if (search.category) setCat(search.category); }, [search.category]);
+  const { data: categories } = useSuspenseQuery(digisellerCategoriesQO());
+  const { data: products } = useSuspenseQuery(
+    digisellerProductsQO(cat === "all" ? undefined : { category: cat }),
+  );
 
   const list = useMemo(() => {
-    let arr = cat === "all" ? products : products.filter((p) => p.category_slug === cat);
-    arr = [...arr];
+    let arr = [...products];
     if (sort === "price-asc") arr.sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") arr.sort((a, b) => b.price - a.price);
     else if (sort === "rating") arr.sort((a, b) => b.rating - a.rating);
     else arr.sort((a, b) => b.sales - a.sales);
     return arr;
-  }, [cat, sort, products]);
+  }, [sort, products]);
 
   return (
     <Layout>
