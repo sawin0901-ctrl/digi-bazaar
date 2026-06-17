@@ -461,6 +461,13 @@ export async function importDigisellerProductById(
       const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
       await generateAndSaveSeoForProduct(row.id);
     }
+    // Enqueue any plati.market links found in description for auto-import
+    try {
+      const linkedIds = extractPlatiItemIds(description).filter((x) => x !== digisellerId);
+      await enqueuePlatiIds(linkedIds, row?.id ?? null);
+    } catch (e) {
+      console.error("[sync] enqueue plati links failed", e);
+    }
   } catch (e) {
     console.error("[sync] seo gen after import failed", e);
   }
