@@ -6,12 +6,14 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
+import { DigisellerWidget } from "@/components/marketplace/DigisellerWidget";
 import { productQO, productsQO, siteTextQO } from "@/lib/marketplace/queries";
 import { logClick } from "@/lib/marketplace/catalog.functions";
 import { Star, ShieldCheck, Zap, BadgeCheck, ShoppingBasket, Check, ChevronRight } from "lucide-react";
 import { useUsdRub, parseUsdAmount } from "@/hooks/use-usd-rub";
 
 const PARTNER_ID = "1459731";
+const SELLER_ID = "1459731";
 
 function withAffiliate(href: string): { href: string; isPartner: boolean } {
   try {
@@ -313,6 +315,29 @@ function ProductPage() {
                 </div>
                 <div className="mt-1 font-semibold">{product.seller}</div>
               </div>
+
+              {product.digiseller_id && (
+                <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-background/60 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Оплата через Digiseller
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                      <ShieldCheck className="h-3 w-3" /> Гарант
+                    </span>
+                  </div>
+                  <div className="digiseller-embed">
+                    <DigisellerWidget
+                      productId={String(product.digiseller_id)}
+                      agentId={PARTNER_ID}
+                      sellerId={SELLER_ID}
+                      imgSize={120}
+                      showName={false}
+                      showPrice={false}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
         </div>
