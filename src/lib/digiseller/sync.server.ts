@@ -278,6 +278,21 @@ export async function runDailyImport(): Promise<{ imported: number; skipped: num
       { onConflict: "slug" },
     );
     if (!error) imported++;
+    if (!error) {
+      try {
+        const { data: row } = await supabaseAdmin
+          .from("products")
+          .select("id,seo_locked")
+          .eq("slug", slug)
+          .maybeSingle();
+        if (row && !row.seo_locked) {
+          const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
+          await generateAndSaveSeoForProduct(row.id);
+        }
+      } catch (e) {
+        console.error("[sync] daily import seo failed", e);
+      }
+    }
   }
 
   return { imported, skipped: allRows.length - chosen.length, category: target.name };
