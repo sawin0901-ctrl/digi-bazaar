@@ -90,14 +90,25 @@ export const listProducts = createServerFn({ method: "GET" })
       .order("sort_order")
       .order("sales", { ascending: false });
     if (data.category) q = q.eq("category_slug", data.category);
-    if (data.dealsOnly) q = q.not("old_price", "is", null);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []).map((r) => ({
+    let mapped = (rows ?? []).map((r) => ({
       ...r,
       images: Array.isArray(r.images) ? (r.images as string[]) : [],
       videos: Array.isArray(r.videos) ? (r.videos as string[]) : [],
     }));
+    if (data.dealsOnly) {
+      // "Deals" = items where the seller marked an old_price OR where the
+      // badge mentions a discount. Fall back to the most popular cards so the
+      // page is never empty when no explicit discounts exist yet.
+      const real = mapped.filter(
+        (r) =>
+          (r.old_price != null && r.old_price > r.price) ||
+          (r.badge ?? "").toLowerCase().includes("скид"),
+      );
+      mapped = real.length > 0 ? real : mapped.slice(0, 24);
+    }
+    return mapped;
   });
 
 export const getProductBySlug = createServerFn({ method: "GET" })
