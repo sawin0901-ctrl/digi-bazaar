@@ -532,6 +532,10 @@ export async function importDigisellerProductById(
     if (error) throw new Error(error.message);
   }
 
+  // If the resolved category has no cover image yet, use this product's image
+  // so new auto-created categories aren't blank on the home grid.
+  await ensureCategoryImage(catSlug, image);
+
   // Generate SEO in background (don't block import on AI latency/errors)
   try {
     const { data: row } = await supabaseAdmin
