@@ -39,14 +39,86 @@ export const Route = createFileRoute("/product/$slug")({
       context.queryClient.ensureQueryData(siteTextQO("buyer_rules")),
       context.queryClient.ensureQueryData(siteTextQO("warranty")),
     ]);
+    return { product };
   },
-  head: ({ params }) => {
-    // Note: head() runs before loader data is available in match cache reliably across SSR;
-    // we set conservative defaults and rely on the route-level title once loaded.
+  head: ({ params, loaderData }) => {
+    const p = loaderData?.product;
+    if (!p) {
+      return { meta: [{ title: `Товар ${params.slug} — DIGIVAULT` }] };
+    }
+    const title = p.seo_title || `${p.title} — DIGIVAULT`;
+    const desc =
+      p.seo_description ||
+      p.short_description ||
+      (p.description ? p.description.slice(0, 160) : `Купить ${p.title} с моментальной доставкой.`);
+    const url = `/product/${params.slug}`;
+    const scripts: Array<{ type: string; children: string }> = [];
+    // Product + Offer + AggregateRating
+    scripts.push({
+      type: "application/ld+json",
+      children: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: p.seo_h1 || p.title,
+        description: desc,
+        image: [p.image, ...(p.images ?? [])].filter(Boolean),
+        brand: { "@type": "Brand", name: p.seller || "DIGIVAULT" },
+        offers: {
+          "@type": "Offer",
+          price: p.price,
+          priceCurrency: "RUB",
+          availability: "https://schema.org/InStock",
+          url,
+        },
+        aggregateRating:
+          p.reviews > 0
+            ? {
+                "@type": "AggregateRating",
+                ratingValue: p.rating,
+                reviewCount: p.reviews,
+              }
+            : undefined,
+      }),
+    });
+    if (p.faq && p.faq.length > 0) {
+      scripts.push({
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: p.faq.map((q) => ({
+            "@type": "Question",
+            name: q.question,
+            acceptedAnswer: { "@type": "Answer", text: q.answer },
+          })),
+        }),
+      });
+    }
+    scripts.push({
+      type: "application/ld+json",
+      children: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Главная", item: "/" },
+          { "@type": "ListItem", position: 2, name: "Каталог", item: "/catalog" },
+          { "@type": "ListItem", position: 3, name: p.title, item: url },
+        ],
+      }),
+    });
     return {
       meta: [
-        { title: `Товар ${params.slug} — DIGIVAULT` },
+        { title },
+        { name: "description", content: desc },
+        ...(p.seo_keywords ? [{ name: "keywords", content: p.seo_keywords }] : []),
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: url },
+        ...(p.image ? [{ property: "og:image", content: p.image }] : []),
       ],
+      links: [{ rel: "canonical", href: url }],
+      scripts,
     };
   },
   component: ProductPage,
