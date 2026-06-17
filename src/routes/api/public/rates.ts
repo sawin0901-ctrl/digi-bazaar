@@ -30,8 +30,44 @@ async function fetchRates(): Promise<Rates> {
 
   let btc: number | null = null;
   if (btcRes.status === "fulfilled" && btcRes.value.ok) {
-    const j = (await btcRes.value.json()) as { bitcoin?: { rub?: number } };
-    btc = j.bitcoin?.rub ?? null;
+    try {
+      const j = (await btcRes.value.json()) as { bitcoin?: { rub?: number } };
+      btc = j.bitcoin?.rub ?? null;
+    } catch {
+      btc = null;
+    }
+  }
+
+  // Fallback 1: Coinbase BTC-RUB spot
+  if (btc == null) {
+    try {
+      const r = await fetch("https://api.coinbase.com/v2/prices/BTC-RUB/spot", {
+        headers: { Accept: "application/json" },
+      });
+      if (r.ok) {
+        const j = (await r.json()) as { data?: { amount?: string } };
+        const v = Number(j.data?.amount);
+        if (Number.isFinite(v) && v > 0) btc = v;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Fallback 2: Binance BTC/USDT × USD→RUB (CBR)
+  if (btc == null && usd != null) {
+    try {
+      const r = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", {
+        headers: { Accept: "application/json" },
+      });
+      if (r.ok) {
+        const j = (await r.json()) as { price?: string };
+        const v = Number(j.price);
+        if (Number.isFinite(v) && v > 0) btc = Math.round(v * usd);
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   return { usd, eur, btc, updated_at: new Date().toISOString() };
@@ -42,7 +78,9 @@ export const Route = createFileRoute("/api/public/rates")({
     handlers: {
       GET: async () => {
         const now = Date.now();
-        if (!cache || now - cache.at > TTL_MS) {
+        const stale = !cache || now - cache.at > TTL_MS;
+        const incomplete = !!cache && cache.data.btc == null;
+        if (stale || incomplete) {
           try {
             cache = { at: now, data: await fetchRates() };
           } catch {
@@ -50,7 +88,7 @@ export const Route = createFileRoute("/api/public/rates")({
             if (!cache) cache = { at: now, data: { usd: null, eur: null, btc: null, updated_at: new Date().toISOString() } };
           }
         }
-        return new Response(JSON.stringify(cache.data), {
+        return new Response(JSON.stringify(cache!.data), {
           headers: {
             "Content-Type": "application/json",
             "Cache-Control": "public, max-age=300, s-maxage=600",
