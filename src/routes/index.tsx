@@ -4,7 +4,8 @@ import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { categoriesQO, productsQO } from "@/lib/marketplace/queries";
 import hero from "@/assets/hero.jpg";
-import { ShieldCheck, Zap, Headphones, BadgeCheck } from "lucide-react";
+import { ShieldCheck, Zap, Headphones, BadgeCheck, Gamepad2, Gift, Music, Film, Smartphone, CreditCard, Package, Sparkles, Tv, KeyRound, ShoppingBag, Coins, ChevronRight, ChevronLeft } from "lucide-react";
+import { useRef } from "react";
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
@@ -47,6 +48,26 @@ function Index() {
     { icon: BadgeCheck, title: "Проверенные продавцы", text: "Рейтинг и верификация каждого магазина" },
     { icon: Headphones, title: "Поддержка 24/7", text: "Среднее время ответа — менее 3 минут" },
   ];
+  const iconFor = (slug: string) => {
+    const s = slug.toLowerCase();
+    if (s.includes("game") || s.includes("игр")) return Gamepad2;
+    if (s.includes("steam")) return Coins;
+    if (s.includes("playstation") || s.includes("ps")) return Gamepad2;
+    if (s.includes("xbox")) return Gamepad2;
+    if (s.includes("nintendo")) return Gamepad2;
+    if (s.includes("roblox")) return Package;
+    if (s.includes("music") || s.includes("музык") || s.includes("spotify")) return Music;
+    if (s.includes("film") || s.includes("кино") || s.includes("video")) return Film;
+    if (s.includes("apple") || s.includes("phone") || s.includes("mobile")) return Smartphone;
+    if (s.includes("card") || s.includes("карт") || s.includes("popolnen") || s.includes("пополн")) return CreditCard;
+    if (s.includes("sub") || s.includes("подпис") || s.includes("tv")) return Tv;
+    if (s.includes("key") || s.includes("ключ")) return KeyRound;
+    if (s.includes("gift") || s.includes("подар")) return Gift;
+    if (s.includes("discount") || s.includes("скид") || s.includes("deal")) return Sparkles;
+    return ShoppingBag;
+  };
+  const stripRef = useRef<HTMLDivElement>(null);
+  const scrollStrip = (dx: number) => stripRef.current?.scrollBy({ left: dx, behavior: "smooth" });
   return (
     <Layout>
       {/* Hero */}
@@ -89,26 +110,88 @@ function Index() {
         </div>
       </section>
 
-      {/* Categories */}
+      {/* Categories — modern Steam/PSN-style strip */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
         <div className="flex items-end justify-between">
           <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Категории</h2>
           <Link to="/catalog" className="text-sm text-muted-foreground hover:text-foreground">Все категории →</Link>
         </div>
+
+        {/* Icon pills strip */}
+        <div className="relative mt-6">
+          <button
+            type="button"
+            aria-label="Назад"
+            onClick={() => scrollStrip(-400)}
+            className="absolute -left-3 top-1/2 z-10 hidden -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full border border-border bg-card/90 shadow-lg backdrop-blur transition hover:bg-card md:grid"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div
+            ref={stripRef}
+            className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {categories.map((c) => {
+              const Icon = iconFor(c.slug);
+              return (
+                <Link
+                  key={c.slug}
+                  to="/catalog"
+                  className="group flex shrink-0 snap-start items-center gap-2.5 rounded-full border border-border bg-card/70 px-4 py-2.5 backdrop-blur transition hover:border-fuchsia-400/60 hover:bg-card hover:shadow-lg hover:shadow-fuchsia-500/10"
+                >
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-500/20 via-fuchsia-500/20 to-cyan-500/20 text-foreground transition group-hover:from-violet-500/40 group-hover:to-cyan-500/40">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="whitespace-nowrap text-sm font-medium">{c.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            aria-label="Вперёд"
+            onClick={() => scrollStrip(400)}
+            className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full border border-border bg-card/90 shadow-lg backdrop-blur transition hover:bg-card md:grid"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Big visual category cards */}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {categories.map((c) => (
-            <Link key={c.slug} to="/catalog" className="group relative overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="aspect-[5/4] overflow-hidden">
-                {c.image && <img src={c.image} alt={c.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />}
-                {!c.image && <div className="h-full w-full bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-cyan-500/30" />}
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                <div className="text-lg font-bold">{c.name}</div>
-                <div className="mt-0.5 text-xs text-white/70">{c.description}</div>
-              </div>
-            </Link>
-          ))}
+          {categories.slice(0, 8).map((c) => {
+            const Icon = iconFor(c.slug);
+            return (
+              <Link
+                key={c.slug}
+                to="/catalog"
+                className="group relative isolate overflow-hidden rounded-3xl border border-border bg-card transition hover:-translate-y-1 hover:border-fuchsia-400/50 hover:shadow-2xl hover:shadow-fuchsia-500/20"
+              >
+                <div className="aspect-[5/4] overflow-hidden">
+                  {c.image ? (
+                    <img src={c.image} alt={c.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-violet-500/40 via-fuchsia-500/30 to-cyan-500/40" />
+                  )}
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                <div className="absolute left-4 top-4">
+                  <span className="grid h-10 w-10 place-items-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur-md">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                </div>
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 text-white">
+                  <div className="min-w-0">
+                    <div className="truncate text-lg font-bold">{c.name}</div>
+                    {c.description && <div className="mt-0.5 truncate text-xs text-white/70">{c.description}</div>}
+                  </div>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-black opacity-0 transition group-hover:opacity-100">
+                    <ChevronRight className="h-4 w-4" />
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
