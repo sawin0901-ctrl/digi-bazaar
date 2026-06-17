@@ -245,11 +245,17 @@ export async function importDigisellerProductById(
       { onConflict: "slug" },
     );
 
-  // Description: always generate a clean unique text via Lovable AI.
-  // Fallback to a sanitized version of Digiseller's own info if AI is unavailable.
-  let description = await generateUniqueDescription(title, catSlug);
-  if (!description) description = sanitizeDigisellerHtml(pd.info ?? "");
-  if (!description) description = sanitizeDigisellerHtml(pd.add_info ?? "");
+  // Description: prefer the real product description from plati.market / Digiseller
+  // (info = описание, add_info = инструкция/правила покупки). Fall back to an
+  // AI-generated unique blurb only if Digiseller returned nothing.
+  const info = sanitizeDigisellerHtml(pd.info ?? "");
+  const addInfo = sanitizeDigisellerHtml(pd.add_info ?? "");
+  let description = "";
+  if (info) description += info;
+  if (addInfo) {
+    description += (description ? "\n\n" : "") + "Инструкция и правила покупки\n\n" + addInfo;
+  }
+  if (!description) description = await generateUniqueDescription(title, catSlug);
 
   const { data: existing } = await supabaseAdmin
     .from("products")
@@ -327,6 +333,12 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       if (pd.name) patch.title = pd.name;
       if (newPrice > 0) patch.price = newPrice;
       if (typeof pd.cnt_sell === "number") patch.sales = pd.cnt_sell;
+      const info = sanitizeDigisellerHtml(pd.info ?? "");
+      const addInfo = sanitizeDigisellerHtml(pd.add_info ?? "");
+      let desc = "";
+      if (info) desc += info;
+      if (addInfo) desc += (desc ? "\n\n" : "") + "Инструкция и правила покупки\n\n" + addInfo;
+      if (desc) patch.description = desc;
       const { error } = await supabaseAdmin.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
     } catch (e) {
