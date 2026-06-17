@@ -24,6 +24,7 @@ import { Route as ApiPublicRatesRouteImport } from './routes/api/public/rates'
 import { Route as ApiPublicHooksProcessImportQueueRouteImport } from './routes/api/public/hooks/process-import-queue'
 import { Route as ApiPublicHooksDigisellerSyncRouteImport } from './routes/api/public/hooks/digiseller-sync'
 import { Route as ApiPublicHooksDigisellerImportRouteImport } from './routes/api/public/hooks/digiseller-import'
+import { Route as ApiPublicHooksDigisellerAvailabilityRouteImport } from './routes/api/public/hooks/digiseller-availability'
 
 const ReviewsRoute = ReviewsRouteImport.update({
   id: '/reviews',
@@ -103,6 +104,12 @@ const ApiPublicHooksDigisellerImportRoute =
     path: '/api/public/hooks/digiseller-import',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksDigisellerAvailabilityRoute =
+  ApiPublicHooksDigisellerAvailabilityRouteImport.update({
+    id: '/api/public/hooks/digiseller-availability',
+    path: '/api/public/hooks/digiseller-availability',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/rates': typeof ApiPublicRatesRoute
+  '/api/public/hooks/digiseller-availability': typeof ApiPublicHooksDigisellerAvailabilityRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -132,6 +140,7 @@ export interface FileRoutesByTo {
   '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/rates': typeof ApiPublicRatesRoute
+  '/api/public/hooks/digiseller-availability': typeof ApiPublicHooksDigisellerAvailabilityRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -150,6 +159,7 @@ export interface FileRoutesById {
   '/_authenticated/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/rates': typeof ApiPublicRatesRoute
+  '/api/public/hooks/digiseller-availability': typeof ApiPublicHooksDigisellerAvailabilityRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/admin-import-queue'
     | '/product/$slug'
     | '/api/public/rates'
+    | '/api/public/hooks/digiseller-availability'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/admin-import-queue'
     | '/product/$slug'
     | '/api/public/rates'
+    | '/api/public/hooks/digiseller-availability'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -201,6 +213,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin-import-queue'
     | '/product/$slug'
     | '/api/public/rates'
+    | '/api/public/hooks/digiseller-availability'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -217,6 +230,7 @@ export interface RootRouteChildren {
   ReviewsRoute: typeof ReviewsRoute
   ProductSlugRoute: typeof ProductSlugRoute
   ApiPublicRatesRoute: typeof ApiPublicRatesRoute
+  ApiPublicHooksDigisellerAvailabilityRoute: typeof ApiPublicHooksDigisellerAvailabilityRoute
   ApiPublicHooksDigisellerImportRoute: typeof ApiPublicHooksDigisellerImportRoute
   ApiPublicHooksDigisellerSyncRoute: typeof ApiPublicHooksDigisellerSyncRoute
   ApiPublicHooksProcessImportQueueRoute: typeof ApiPublicHooksProcessImportQueueRoute
@@ -329,6 +343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDigisellerImportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/digiseller-availability': {
+      id: '/api/public/hooks/digiseller-availability'
+      path: '/api/public/hooks/digiseller-availability'
+      fullPath: '/api/public/hooks/digiseller-availability'
+      preLoaderRoute: typeof ApiPublicHooksDigisellerAvailabilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -356,6 +377,8 @@ const rootRouteChildren: RootRouteChildren = {
   ReviewsRoute: ReviewsRoute,
   ProductSlugRoute: ProductSlugRoute,
   ApiPublicRatesRoute: ApiPublicRatesRoute,
+  ApiPublicHooksDigisellerAvailabilityRoute:
+    ApiPublicHooksDigisellerAvailabilityRoute,
   ApiPublicHooksDigisellerImportRoute: ApiPublicHooksDigisellerImportRoute,
   ApiPublicHooksDigisellerSyncRoute: ApiPublicHooksDigisellerSyncRoute,
   ApiPublicHooksProcessImportQueueRoute: ApiPublicHooksProcessImportQueueRoute,
