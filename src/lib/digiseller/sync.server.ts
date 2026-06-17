@@ -41,6 +41,7 @@ type ProductDataResp = {
     base_url?: string;
     in_stock?: number | boolean;
     cnt_sell?: number;
+    preview_imgs?: Array<{ id?: number; url?: string; width?: number; height?: number }>;
     statistics?: {
       sales?: number;
       good_reviews?: number;
@@ -59,6 +60,55 @@ function computeSellerStats(pd: NonNullable<ProductDataResp["product"]>) {
   const sales = Number(pd.statistics?.sales ?? pd.cnt_sell ?? 0);
   const sellerName = (pd.seller?.name ?? "").trim() || "plati.market";
   return { reviews, rating, sales, sellerName };
+}
+
+function extractImages(pd: NonNullable<ProductDataResp["product"]>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (u: string | null | undefined) => {
+    if (!u) return;
+    const url = u.trim();
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    out.push(url);
+  };
+  push(pd.image);
+  for (const p of pd.preview_imgs ?? []) push(p?.url);
+  // also try to extract <img src="..."> from info HTML
+  const html = (pd.info ?? "") + "\n" + (pd.add_info ?? "");
+  const re = /<img[^>]+src=["']([^"']+)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) push(m[1]);
+  return out;
+}
+
+function extractVideos(pd: NonNullable<ProductDataResp["product"]>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (u: string | null | undefined) => {
+    if (!u) return;
+    let url = u.trim();
+    if (!url) return;
+    if (url.startsWith("//")) url = "https:" + url;
+    if (seen.has(url)) return;
+    seen.add(url);
+    out.push(url);
+  };
+  const html = (pd.info ?? "") + "\n" + (pd.add_info ?? "");
+  // iframes (youtube/vimeo/rutube embeds)
+  const reIframe = /<iframe[^>]+src=["']([^"']+)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = reIframe.exec(html)) !== null) {
+    const src = m[1];
+    if (/youtube\.com|youtu\.be|vimeo\.com|rutube\.ru|vk\.com\/video/i.test(src)) push(src);
+  }
+  // <video src=...>
+  const reVideo = /<video[^>]+src=["']([^"']+)["']/gi;
+  while ((m = reVideo.exec(html)) !== null) push(m[1]);
+  // bare youtube/vimeo links
+  const reLink = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=[\w-]+|youtu\.be\/[\w-]+|vimeo\.com\/\d+|rutube\.ru\/video\/[\w-]+)/gi;
+  while ((m = reLink.exec(html)) !== null) push(m[0]);
+  return out;
 }
 
 function productUrl(id: number): string {
@@ -251,6 +301,8 @@ export async function importDigisellerProductById(
   const image =
     pd.image ||
     `https://graph.digiseller.ru/img.ashx?id_d=${digisellerId}&w=400&h=300&crop=true`;
+  const images = extractImages(pd);
+  const videos = extractVideos(pd);
   const slug = `digi-${digisellerId}`;
 
   // Ensure category exists
@@ -297,6 +349,8 @@ export async function importDigisellerProductById(
       reviews: stats.reviews,
       sales: stats.sales,
       image,
+      images,
+      videos,
       badge: null,
       description,
       details_url: productUrl(Number(digisellerId)),
@@ -363,6 +417,11 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       if (info) desc += info;
       if (addInfo) desc += (desc ? "\n\n" : "") + "Инструкция и правила покупки\n\n" + addInfo;
       if (desc) patch.description = desc;
+      const imgs = extractImages(pd);
+      const vids = extractVideos(pd);
+      patch.images = imgs;
+      patch.videos = vids;
+      if (pd.image) patch.image = pd.image;
       const { error } = await supabaseAdmin.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
     } catch (e) {
