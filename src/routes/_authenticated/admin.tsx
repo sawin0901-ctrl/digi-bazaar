@@ -127,7 +127,7 @@ function AdminPage() {
           <div className="flex items-center gap-2">
             <Link to="/" className="rounded-xl border border-border bg-card px-3 py-2 text-sm hover:bg-muted">← на сайт</Link>
             <Link
-              to="/admin/import-queue"
+              to="/admin-import-queue"
               className="rounded-xl border border-border bg-card px-3 py-2 text-sm hover:bg-muted"
             >
               Очередь импорта
