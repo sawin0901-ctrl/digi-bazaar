@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminImportQueueRouteImport } from './routes/_authenticated/admin-import-queue'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiPublicRatesRouteImport } from './routes/api/public/rates'
 import { Route as ApiPublicHooksProcessImportQueueRouteImport } from './routes/api/public/hooks/process-import-queue'
 import { Route as ApiPublicHooksDigisellerSyncRouteImport } from './routes/api/public/hooks/digiseller-sync'
 import { Route as ApiPublicHooksDigisellerImportRouteImport } from './routes/api/public/hooks/digiseller-import'
@@ -79,6 +80,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicRatesRoute = ApiPublicRatesRouteImport.update({
+  id: '/api/public/rates',
+  path: '/api/public/rates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksProcessImportQueueRoute =
   ApiPublicHooksProcessImportQueueRouteImport.update({
     id: '/api/public/hooks/process-import-queue',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/rates': typeof ApiPublicRatesRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/rates': typeof ApiPublicRatesRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/rates': typeof ApiPublicRatesRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin-import-queue'
     | '/product/$slug'
+    | '/api/public/rates'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin-import-queue'
     | '/product/$slug'
+    | '/api/public/rates'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/admin-import-queue'
     | '/product/$slug'
+    | '/api/public/rates'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -204,6 +216,7 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   ReviewsRoute: typeof ReviewsRoute
   ProductSlugRoute: typeof ProductSlugRoute
+  ApiPublicRatesRoute: typeof ApiPublicRatesRoute
   ApiPublicHooksDigisellerImportRoute: typeof ApiPublicHooksDigisellerImportRoute
   ApiPublicHooksDigisellerSyncRoute: typeof ApiPublicHooksDigisellerSyncRoute
   ApiPublicHooksProcessImportQueueRoute: typeof ApiPublicHooksProcessImportQueueRoute
@@ -288,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/rates': {
+      id: '/api/public/rates'
+      path: '/api/public/rates'
+      fullPath: '/api/public/rates'
+      preLoaderRoute: typeof ApiPublicRatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/process-import-queue': {
       id: '/api/public/hooks/process-import-queue'
       path: '/api/public/hooks/process-import-queue'
@@ -335,6 +355,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   ReviewsRoute: ReviewsRoute,
   ProductSlugRoute: ProductSlugRoute,
+  ApiPublicRatesRoute: ApiPublicRatesRoute,
   ApiPublicHooksDigisellerImportRoute: ApiPublicHooksDigisellerImportRoute,
   ApiPublicHooksDigisellerSyncRoute: ApiPublicHooksDigisellerSyncRoute,
   ApiPublicHooksProcessImportQueueRoute: ApiPublicHooksProcessImportQueueRoute,
