@@ -16,7 +16,15 @@ import {
   type AdminProduct,
   type ProductInput,
 } from "@/lib/admin/admin.functions";
-import { Trash2, Plus, LogOut, Save, X, Download } from "lucide-react";
+import {
+  adminListSeo,
+  adminGetSeo,
+  adminRegenerateSeo,
+  adminUpdateSeo,
+  adminToggleSeoLock,
+  adminBulkRegenerateSeo,
+} from "@/lib/seo/seo.functions";
+import { Trash2, Plus, LogOut, Save, X, Download, Sparkles, Lock, Unlock, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Админка — DIGIVAULT" }] }),
