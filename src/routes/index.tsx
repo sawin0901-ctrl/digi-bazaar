@@ -169,11 +169,17 @@ function Index() {
                 search={{ category: c.slug }}
                 className="group relative isolate overflow-hidden rounded-3xl border border-border bg-card transition hover:-translate-y-1 hover:border-fuchsia-400/50 hover:shadow-2xl hover:shadow-fuchsia-500/20"
               >
-                <div className="aspect-[5/4] overflow-hidden">
-                  {c.image ? (
-                    <img src={c.image} alt={c.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
-                  ) : (
-                    <div className="h-full w-full bg-gradient-to-br from-violet-500/40 via-fuchsia-500/30 to-cyan-500/40" />
+                <div className="aspect-[5/4] overflow-hidden bg-gradient-to-br from-violet-500/40 via-fuchsia-500/30 to-cyan-500/40">
+                  {c.image && (
+                    <img
+                      src={c.image}
+                      alt={c.name}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
                   )}
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
