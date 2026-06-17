@@ -21,6 +21,7 @@ type SellerGoodsRow = {
 type SellerGoodsResp = {
   retval: number;
   desc?: string;
+  retdesc?: string;
   total_pages?: number;
   cnt_goods?: number;
   rows?: SellerGoodsRow[];
@@ -34,6 +35,10 @@ type DigiCategoryNode = {
   sub?: DigiCategoryNode[];
 };
 type CategoriesResp = { retval: number; desc?: string; category?: DigiCategoryNode[] };
+
+function digisellerError(source: string, json: { retval?: number; desc?: string; retdesc?: string }) {
+  return new Error(`${source}: ${json.retdesc ?? json.desc ?? "Digiseller API error"} (retval ${json.retval ?? "unknown"})`);
+}
 
 function productImage(row: SellerGoodsRow): string {
   if (row.url_image) return row.url_image;
@@ -88,7 +93,7 @@ export const listDigisellerCategories = createServerFn({ method: "GET" }).handle
   const { digisellerPost, getSellerId } = await import("./api.server");
   const id_seller = Number(getSellerId());
   const json = await digisellerPost<CategoriesResp>("/api/categories", { id_seller, lang: "ru-RU" });
-  if (json.retval !== 0) return [];
+  if (json.retval !== 0) throw digisellerError("categories", json);
   return flattenCategories(json.category);
 });
 
@@ -115,8 +120,11 @@ export const listDigisellerProducts = createServerFn({ method: "GET" })
       show_hidden: 0,
     };
     const json = await digisellerPost<SellerGoodsResp>("/api/seller-goods", body, true);
-    if (json.retval !== 0) return [];
+    if (json.retval !== 0) throw digisellerError("seller-goods", json);
     const rows = json.rows ?? json.product ?? [];
+    if (rows.length === 0) {
+      throw new Error(`seller-goods: Digiseller вернул 0 товаров для seller_id ${id_seller}. Проверьте, что DIGISELLER_SELLER_ID — это ID продавца с товарами, а API-ключ создан именно для него.`);
+    }
     return rows.map((r) => mapRow(r, categorySlug));
   });
 
