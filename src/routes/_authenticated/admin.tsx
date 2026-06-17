@@ -566,8 +566,23 @@ function SeoSection({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-type SeoGetFn = typeof adminGetSeo;
-type SeoUpdateFn = typeof adminUpdateSeo;
+type SeoData = Awaited<ReturnType<typeof adminGetSeo>>;
+type SeoGetFn = (opts: { data: { productId: string } }) => Promise<SeoData>;
+type SeoUpdateFn = (opts: {
+  data: {
+    productId: string;
+    seo_title?: string;
+    seo_description?: string;
+    seo_keywords?: string;
+    seo_h1?: string;
+    short_description?: string;
+    full_description?: string;
+    instructions?: string;
+    advantages?: string[];
+    features?: string[];
+    faq?: { question: string; answer: string }[];
+  };
+}) => Promise<{ ok: true }>;
 
 function SeoEditDialog({
   productId,
