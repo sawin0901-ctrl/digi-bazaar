@@ -7,7 +7,7 @@ export function Footer() {
         <div>
           <div className="flex items-center gap-2">
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 text-white font-black">D</div>
-            <span className="text-lg font-bold">DIGIVAULT</span>
+            <span className="text-lg font-bold">GamePlaza</span>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">Маркетплейс цифровых товаров №1 в Рунете. Мгновенная доставка 24/7.</p>
         </div>
@@ -28,11 +28,11 @@ export function Footer() {
         </div>
         <div>
           <div className="text-sm font-semibold">Поддержка 24/7</div>
-          <p className="mt-3 text-sm text-muted-foreground">support@digivault.ru</p>
-          <p className="text-sm text-muted-foreground">Telegram: @digivault</p>
+          <p className="mt-3 text-sm text-muted-foreground">support@gameplaza.site</p>
+          <p className="text-sm text-muted-foreground">Telegram: @gameplaza</p>
         </div>
       </div>
-      <div className="border-t border-border/60 py-4 text-center text-xs text-muted-foreground">© 2026 DIGIVAULT. Все права защищены.</div>
+      <div className="border-t border-border/60 py-4 text-center text-xs text-muted-foreground">© 2026 GamePlaza. Все права защищены.</div>
     </footer>
   );
 }

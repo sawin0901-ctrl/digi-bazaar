@@ -9,7 +9,7 @@ import {
 import { Play, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin-availability")({
-  head: () => ({ meta: [{ title: "Доступность товаров — DIGIVAULT" }] }),
+  head: () => ({ meta: [{ title: "Доступность товаров — GamePlaza" }] }),
   component: AvailabilityPage,
 });
 

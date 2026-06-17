@@ -17,7 +17,7 @@ export const Route = createFileRoute("/catalog")({
   },
   head: () => ({
     meta: [
-      { title: "Каталог цифровых товаров — DIGIVAULT" },
+      { title: "Каталог цифровых товаров — GamePlaza" },
       { name: "description", content: "Каталог из 18 000+ цифровых товаров: игры, подписки, ключи, карты и софт." },
     ],
   }),

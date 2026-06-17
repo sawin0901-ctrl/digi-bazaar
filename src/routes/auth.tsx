@@ -5,7 +5,7 @@ import { lovable } from "@/integrations/lovable";
 import { Layout } from "@/components/marketplace/Layout";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Вход — DIGIVAULT" }] }),
+  head: () => ({ meta: [{ title: "Вход — GamePlaza" }] }),
   component: AuthPage,
 });
 

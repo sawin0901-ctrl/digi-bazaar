@@ -28,7 +28,7 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 text-white font-black shadow-lg shadow-fuchsia-500/30">D</div>
-          <span className="text-lg font-bold tracking-tight">DIGIVAULT</span>
+          <span className="text-lg font-bold tracking-tight">GamePlaza</span>
         </Link>
         <nav className="ml-6 hidden items-center gap-5 text-sm font-medium text-muted-foreground md:flex">
           <button

@@ -14,8 +14,8 @@ const reviews = [
 export const Route = createFileRoute("/reviews")({
   head: () => ({
     meta: [
-      { title: "Отзывы покупателей — DIGIVAULT" },
-      { name: "description", content: "Реальные отзывы покупателей DIGIVAULT. Рейтинг 4.9/5 на основе 47 000+ отзывов." },
+      { title: "Отзывы покупателей — GamePlaza" },
+      { name: "description", content: "Реальные отзывы покупателей GamePlaza. Рейтинг 4.9/5 на основе 47 000+ отзывов." },
     ],
   }),
   component: () => (

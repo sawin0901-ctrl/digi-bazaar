@@ -93,7 +93,7 @@ async function fetchPageVerdict(digisellerId: string): Promise<AvailabilityVerdi
     const r = await fetch(`https://plati.market/itm/${encodeURIComponent(digisellerId)}`, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; DigivaultAvailabilityBot/1.0; +https://digivault.app)",
+          "Mozilla/5.0 (compatible; GamePlazaAvailabilityBot/1.0; +https://gameplaza.site)",
         Accept: "text/html,application/xhtml+xml",
         "Accept-Language": "ru,en;q=0.8",
       },
