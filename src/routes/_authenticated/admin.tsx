@@ -126,6 +126,12 @@ function AdminPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link to="/" className="rounded-xl border border-border bg-card px-3 py-2 text-sm hover:bg-muted">← на сайт</Link>
+            <Link
+              to="/_authenticated/admin/import-queue"
+              className="rounded-xl border border-border bg-card px-3 py-2 text-sm hover:bg-muted"
+            >
+              Очередь импорта
+            </Link>
             <button onClick={handleSignOut} className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-sm hover:bg-muted">
               <LogOut className="h-4 w-4" /> Выйти
             </button>
