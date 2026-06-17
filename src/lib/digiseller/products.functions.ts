@@ -110,7 +110,7 @@ export const listDigisellerProducts = createServerFn({ method: "GET" })
       order_dir: "asc",
       rows: data.rows ?? 60,
       page: data.page ?? 1,
-      currency: "RUB",
+      currency: "RUR",
       lang: "ru-RU",
       show_hidden: 0,
     };
