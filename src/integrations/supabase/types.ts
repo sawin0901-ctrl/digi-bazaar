@@ -126,10 +126,13 @@ export type Database = {
           created_at: string
           description: string
           details_url: string | null
+          digiseller_category_id: string | null
           digiseller_id: string | null
           id: string
           image: string
+          in_stock: boolean
           is_active: boolean
+          last_synced_at: string | null
           old_price: number | null
           price: number
           rating: number
@@ -150,10 +153,13 @@ export type Database = {
           created_at?: string
           description?: string
           details_url?: string | null
+          digiseller_category_id?: string | null
           digiseller_id?: string | null
           id?: string
           image?: string
+          in_stock?: boolean
           is_active?: boolean
+          last_synced_at?: string | null
           old_price?: number | null
           price?: number
           rating?: number
@@ -174,10 +180,13 @@ export type Database = {
           created_at?: string
           description?: string
           details_url?: string | null
+          digiseller_category_id?: string | null
           digiseller_id?: string | null
           id?: string
           image?: string
+          in_stock?: boolean
           is_active?: boolean
+          last_synced_at?: string | null
           old_price?: number | null
           price?: number
           rating?: number

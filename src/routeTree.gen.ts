@@ -19,6 +19,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiPublicHooksDigisellerSyncRouteImport } from './routes/api/public/hooks/digiseller-sync'
+import { Route as ApiPublicHooksDigisellerImportRouteImport } from './routes/api/public/hooks/digiseller-import'
 
 const ReviewsRoute = ReviewsRouteImport.update({
   id: '/reviews',
@@ -69,6 +71,18 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicHooksDigisellerSyncRoute =
+  ApiPublicHooksDigisellerSyncRouteImport.update({
+    id: '/api/public/hooks/digiseller-sync',
+    path: '/api/public/hooks/digiseller-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksDigisellerImportRoute =
+  ApiPublicHooksDigisellerImportRouteImport.update({
+    id: '/api/public/hooks/digiseller-import',
+    path: '/api/public/hooks/digiseller-import',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,6 +94,8 @@ export interface FileRoutesByFullPath {
   '/reviews': typeof ReviewsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
+  '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,6 +107,8 @@ export interface FileRoutesByTo {
   '/reviews': typeof ReviewsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
+  '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +122,8 @@ export interface FileRoutesById {
   '/reviews': typeof ReviewsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
+  '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +137,8 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/admin'
     | '/product/$slug'
+    | '/api/public/hooks/digiseller-import'
+    | '/api/public/hooks/digiseller-sync'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +150,8 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/admin'
     | '/product/$slug'
+    | '/api/public/hooks/digiseller-import'
+    | '/api/public/hooks/digiseller-sync'
   id:
     | '__root__'
     | '/'
@@ -140,6 +164,8 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/_authenticated/admin'
     | '/product/$slug'
+    | '/api/public/hooks/digiseller-import'
+    | '/api/public/hooks/digiseller-sync'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -152,6 +178,8 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   ReviewsRoute: typeof ReviewsRoute
   ProductSlugRoute: typeof ProductSlugRoute
+  ApiPublicHooksDigisellerImportRoute: typeof ApiPublicHooksDigisellerImportRoute
+  ApiPublicHooksDigisellerSyncRoute: typeof ApiPublicHooksDigisellerSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -226,6 +254,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/digiseller-sync': {
+      id: '/api/public/hooks/digiseller-sync'
+      path: '/api/public/hooks/digiseller-sync'
+      fullPath: '/api/public/hooks/digiseller-sync'
+      preLoaderRoute: typeof ApiPublicHooksDigisellerSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/digiseller-import': {
+      id: '/api/public/hooks/digiseller-import'
+      path: '/api/public/hooks/digiseller-import'
+      fullPath: '/api/public/hooks/digiseller-import'
+      preLoaderRoute: typeof ApiPublicHooksDigisellerImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -250,6 +292,8 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   ReviewsRoute: ReviewsRoute,
   ProductSlugRoute: ProductSlugRoute,
+  ApiPublicHooksDigisellerImportRoute: ApiPublicHooksDigisellerImportRoute,
+  ApiPublicHooksDigisellerSyncRoute: ApiPublicHooksDigisellerSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
