@@ -7,6 +7,23 @@ const SCRIPT_ID = "digiseller-js";
 const CSS_ID = "digiseller-css";
 const LOAD_TIMEOUT_MS = 5000;
 const MAX_ATTEMPTS = 3;
+const LOG_PREFIX = "[digiseller]";
+
+function log(...args: unknown[]) {
+  if (typeof window === "undefined") return;
+  // eslint-disable-next-line no-console
+  console.log(LOG_PREFIX, ...args);
+}
+function warn(...args: unknown[]) {
+  if (typeof window === "undefined") return;
+  // eslint-disable-next-line no-console
+  console.warn(LOG_PREFIX, ...args);
+}
+function error(...args: unknown[]) {
+  if (typeof window === "undefined") return;
+  // eslint-disable-next-line no-console
+  console.error(LOG_PREFIX, ...args);
+}
 
 type DigiSellerWin = Window & { DigiSeller?: (container?: HTMLElement) => void };
 
@@ -40,6 +57,7 @@ function loadScriptOnce(sellerId: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
     if (existing && (window as DigiSellerWin).DigiSeller) {
+      log("script already present, DigiSeller global ready", { sellerId });
       resolve();
       return;
     }
@@ -49,19 +67,26 @@ function loadScriptOnce(sellerId: string): Promise<void> {
       script.defer = true;
       script.id = SCRIPT_ID;
       script.src = buildScriptSrc(sellerId);
+      log("injecting script", { sellerId, src: script.src });
       document.head.appendChild(script);
+    } else {
+      log("script tag exists, waiting for DigiSeller global", { sellerId });
     }
     const timer = window.setTimeout(() => {
       cleanup();
+      error("script load timeout", { sellerId, ms: LOAD_TIMEOUT_MS });
       reject(new Error("digiseller script timeout"));
     }, LOAD_TIMEOUT_MS);
     const onLoad = () => {
       cleanup();
+      const hasGlobal = typeof (window as DigiSellerWin).DigiSeller === "function";
+      log("script onload", { sellerId, hasDigiSellerGlobal: hasGlobal });
       resolve();
     };
     const onError = () => {
       cleanup();
       script.remove();
+      error("script onerror", { sellerId, src: script.src });
       reject(new Error("digiseller script error"));
     };
     const cleanup = () => {
@@ -91,24 +116,30 @@ export function ensureDigisellerScript(sellerId: string): Promise<void> {
   }
   const key = sellerId;
   const cached = inflight.get(key);
-  if (cached) return cached;
+  if (cached) {
+    log("ensureDigisellerScript reusing in-flight load", { sellerId });
+    return cached;
+  }
 
   injectCss(sellerId);
 
   const run = async () => {
     let lastErr: unknown;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      log("loadScriptOnce attempt", { sellerId, attempt: attempt + 1, of: MAX_ATTEMPTS });
       try {
         await loadScriptOnce(sellerId);
         return;
       } catch (err) {
         lastErr = err;
+        warn("attempt failed", { sellerId, attempt: attempt + 1, err: String(err) });
         // exponential backoff: 300ms, 900ms
         const delay = 300 * Math.pow(3, attempt);
         await new Promise((r) => setTimeout(r, delay));
       }
     }
     inflight.delete(key); // allow future retries on next mount
+    error("all attempts failed", { sellerId, lastErr: String(lastErr) });
     throw lastErr instanceof Error ? lastErr : new Error("digiseller load failed");
   };
 
@@ -124,7 +155,8 @@ export function invokeDigiseller(container: HTMLElement): boolean {
   try {
     fn(container);
     return true;
-  } catch {
+  } catch (err) {
+    error("DigiSeller(container) threw", { err: String(err) });
     return false;
   }
 }
