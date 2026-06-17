@@ -143,7 +143,8 @@ function ProductPage() {
         </nav>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="rounded-3xl border border-border bg-card p-5 md:p-7">
+          <div>
+            <div className="rounded-3xl border border-border bg-card p-5 md:p-7">
             <div className="grid gap-6 md:grid-cols-[auto_1fr]">
               <div className="flex gap-3">
                 {allImages.length > 1 && (
@@ -241,21 +242,22 @@ function ProductPage() {
               </div>
             )}
 
-            {product.digiseller_id && (
-              <div className="mt-7 border-t border-border pt-6">
-                <div className="digiseller-embed digiseller-inline">
-                  <DigisellerWidget
-                    productId={String(product.digiseller_id)}
-                    agentId={PARTNER_ID}
-                    sellerId={SELLER_ID}
-                    showName={false}
-                    showPrice={false}
-                    showImage={false}
-                  />
-                </div>
-              </div>
-            )}
           </div>
+          {product.digiseller_id && (
+            <div className="mt-6 rounded-3xl border border-border bg-card p-5 md:p-7">
+              <div className="digiseller-embed digiseller-inline">
+                <DigisellerWidget
+                  productId={String(product.digiseller_id)}
+                  agentId={PARTNER_ID}
+                  sellerId={SELLER_ID}
+                  showName={false}
+                  showPrice={false}
+                  showImage={false}
+                />
+              </div>
+            </div>
+          )}
+        </div>
 
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-3xl border border-border bg-card p-6 shadow-lg shadow-black/5">
@@ -282,30 +284,26 @@ function ProductPage() {
                 </div>
               )}
 
-              <div className="mt-5 flex items-stretch gap-2">
-                    <button
-                      type="button"
-                      aria-label="В корзину"
-                      className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-border bg-background text-foreground transition hover:bg-muted"
-                    >
-                      <ShoppingBasket className="h-5 w-5" />
-                    </button>
-                    <a
-                      href={canBuy ? buyHref : undefined}
-                      target="_blank"
-                      rel="noopener nofollow sponsored"
-                      aria-disabled={!canBuy}
-                      onClick={(e) => { if (!canBuy) { e.preventDefault(); return; } handleBuy(); }}
-                      className={
-                        "flex-1 rounded-xl py-3 text-center text-sm font-semibold transition " +
-                        (canBuy
-                          ? "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 text-white shadow-lg shadow-fuchsia-500/30 hover:opacity-90"
-                          : "cursor-not-allowed bg-muted text-muted-foreground")
-                      }
-                    >
-                      Купить сейчас
-                    </a>
-              </div>
+              {canBuy && (
+                <div className="mt-5 flex items-stretch gap-2">
+                  <button
+                    type="button"
+                    aria-label="В корзину"
+                    className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-border bg-background text-foreground transition hover:bg-muted"
+                  >
+                    <ShoppingBasket className="h-5 w-5" />
+                  </button>
+                  <a
+                    href={buyHref}
+                    target="_blank"
+                    rel="noopener nofollow sponsored"
+                    onClick={handleBuy}
+                    className="flex-1 rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/30 transition hover:opacity-90"
+                  >
+                    Купить сейчас
+                  </a>
+                </div>
+              )}
 
               <p className="mt-3 text-xs text-muted-foreground">
                 Нажимая на кнопку, вы соглашаетесь с{" "}
