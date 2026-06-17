@@ -47,7 +47,7 @@ export function ProductCard({ product }: { product: ProductDTO }) {
           <Link
             to="/product/$slug"
             params={{ slug: product.slug }}
-            className="flex-shrink-0 rounded-lg bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-fuchsia-500/20 transition hover:opacity-90"
+            className="flex-shrink-0 rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-fuchsia-500/20 transition hover:opacity-90"
           >
             Купить
           </Link>
