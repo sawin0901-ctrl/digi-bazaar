@@ -1,4 +1,6 @@
 import { digisellerPost, digisellerGet, getSellerId } from "./api.server";
+import type { Database } from "@/integrations/supabase/types";
+type ProductUpdate = Database["public"]["Tables"]["products"]["Update"];
 
 const AGENT_ID = "1459731";
 
@@ -222,7 +224,7 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       const pd = json.product;
       const newPrice = Math.round(Number(pd.prices_unit?.price_rub ?? pd.price?.price ?? 0));
       const inStock = pd.in_stock === undefined ? true : Boolean(pd.in_stock);
-      const patch: Record<string, unknown> = {
+      const patch: ProductUpdate = {
         last_synced_at: new Date().toISOString(),
         in_stock: inStock,
       };
