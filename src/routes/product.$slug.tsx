@@ -243,23 +243,22 @@ function ProductPage() {
             )}
 
           </div>
-          {product.digiseller_id && (
-            <div className="mt-6 rounded-3xl border border-border bg-card p-5 md:p-7">
-              <div className="digiseller-embed digiseller-inline">
+        </div>
+
+          <aside className="lg:sticky lg:top-24 lg:self-start">
+            {product.digiseller_id ? (
+              <div className="digiseller-embed digiseller-sidebar rounded-3xl border border-border bg-card p-4 shadow-lg shadow-black/5">
                 <DigisellerWidget
                   productId={String(product.digiseller_id)}
                   agentId={PARTNER_ID}
                   sellerId={SELLER_ID}
-                  showName={false}
-                  showPrice={false}
-                  showImage={false}
+                  showName={true}
+                  showPrice={true}
+                  showImage={true}
+                  imgSize={220}
                 />
               </div>
-            </div>
-          )}
-        </div>
-
-          <aside className="lg:sticky lg:top-24 lg:self-start">
+            ) : (
             <div className="rounded-3xl border border-border bg-card p-6 shadow-lg shadow-black/5">
               <div className="flex items-end gap-3">
                 <div className="text-4xl font-extrabold tracking-tight">
@@ -329,6 +328,7 @@ function ProductPage() {
                 <div className="mt-1 font-semibold">{product.seller}</div>
               </div>
             </div>
+            )}
           </aside>
         </div>
 
