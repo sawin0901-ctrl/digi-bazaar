@@ -449,19 +449,29 @@ export async function importDigisellerProductById(
   }
   if (!description) description = await generateUniqueDescription(title, catSlug);
 
-  const { data: existing } = await supabaseAdmin
+  // Look up existing row by digiseller_id (preferred) or slug to prevent duplicates.
+  // If found, UPDATE in place (keep stable id/slug to preserve URLs and inbound links).
+  // If not found, INSERT new.
+  const { data: existingByDigi } = await supabaseAdmin
     .from("products")
-    .select("id")
-    .eq("slug", slug)
+    .select("id, slug")
+    .eq("digiseller_id", digisellerId)
     .maybeSingle();
+  const { data: existingBySlug } = existingByDigi
+    ? { data: null as { id: string; slug: string } | null }
+    : await supabaseAdmin
+        .from("products")
+        .select("id, slug")
+        .eq("slug", slug)
+        .maybeSingle();
+  const existing = existingByDigi ?? existingBySlug;
 
   const inStock = pd.in_stock === undefined ? true : Boolean(pd.in_stock);
 
   const stats = computeSellerStats(pd);
 
-  const { error } = await supabaseAdmin.from("products").upsert(
-    {
-      slug,
+  const payload = {
+      slug: existing?.slug ?? slug,
       title,
       category_slug: catSlug,
       seller: stats.sellerName,
@@ -482,17 +492,25 @@ export async function importDigisellerProductById(
       is_active: true,
       in_stock: inStock,
       last_synced_at: new Date().toISOString(),
-    },
-    { onConflict: "slug" },
-  );
-  if (error) throw new Error(error.message);
+    };
+
+  if (existing) {
+    const { error } = await supabaseAdmin
+      .from("products")
+      .update(payload)
+      .eq("id", existing.id);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabaseAdmin.from("products").insert(payload);
+    if (error) throw new Error(error.message);
+  }
 
   // Generate SEO in background (don't block import on AI latency/errors)
   try {
     const { data: row } = await supabaseAdmin
       .from("products")
       .select("id,seo_locked")
-      .eq("slug", slug)
+      .eq("digiseller_id", digisellerId)
       .maybeSingle();
     if (row && !row.seo_locked) {
       const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
