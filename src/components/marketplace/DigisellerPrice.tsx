@@ -111,6 +111,8 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
       });
       observer.observe(el, { childList: true, subtree: true, characterData: true });
 
+      if (gotLivePrice) return;
+
       timeoutTimer = window.setTimeout(() => {
         // Stop waiting; UI already has a fallback price.
         if (gotLivePrice) return;
