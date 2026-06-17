@@ -41,8 +41,25 @@ type ProductDataResp = {
     base_url?: string;
     in_stock?: number | boolean;
     cnt_sell?: number;
+    statistics?: {
+      sales?: number;
+      good_reviews?: number;
+      bad_reviews?: number;
+    };
+    seller?: { id?: number; name?: string };
   };
 };
+
+function computeSellerStats(pd: NonNullable<ProductDataResp["product"]>) {
+  const good = Number(pd.statistics?.good_reviews ?? 0);
+  const bad = Number(pd.statistics?.bad_reviews ?? 0);
+  const total = good + bad;
+  const reviews = total;
+  const rating = total > 0 ? Math.max(1, Math.min(5, Number(((good * 5) / total).toFixed(1)))) : 5;
+  const sales = Number(pd.statistics?.sales ?? pd.cnt_sell ?? 0);
+  const sellerName = (pd.seller?.name ?? "").trim() || "plati.market";
+  return { reviews, rating, sales, sellerName };
+}
 
 function productUrl(id: number): string {
   return `https://plati.market/itm/${id}?ai=${AGENT_ID}`;
@@ -265,18 +282,20 @@ export async function importDigisellerProductById(
 
   const inStock = pd.in_stock === undefined ? true : Boolean(pd.in_stock);
 
+  const stats = computeSellerStats(pd);
+
   const { error } = await supabaseAdmin.from("products").upsert(
     {
       slug,
       title,
       category_slug: catSlug,
-      seller: "plati.market",
-      seller_rating: 5,
+      seller: stats.sellerName,
+      seller_rating: stats.rating,
       price,
       old_price: null,
-      rating: 5,
-      reviews: 0,
-      sales: pd.cnt_sell ?? 0,
+      rating: stats.rating,
+      reviews: stats.reviews,
+      sales: stats.sales,
       image,
       badge: null,
       description,
@@ -332,7 +351,12 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       };
       if (pd.name) patch.title = pd.name;
       if (newPrice > 0) patch.price = newPrice;
-      if (typeof pd.cnt_sell === "number") patch.sales = pd.cnt_sell;
+      const stats = computeSellerStats(pd);
+      patch.sales = stats.sales;
+      patch.reviews = stats.reviews;
+      patch.rating = stats.rating;
+      patch.seller = stats.sellerName;
+      patch.seller_rating = stats.rating;
       const info = sanitizeDigisellerHtml(pd.info ?? "");
       const addInfo = sanitizeDigisellerHtml(pd.add_info ?? "");
       let desc = "";
