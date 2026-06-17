@@ -1,18 +1,40 @@
 import { Link } from "@tanstack/react-router";
-import { Search, ShoppingCart, User, Menu } from "lucide-react";
-import { useState } from "react";
+import { Search, ShoppingCart, User, Menu, ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { categoriesQO } from "@/lib/marketplace/queries";
+import { CatalogMenu } from "./CatalogMenu";
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const [catOpen, setCatOpen] = useState(false);
+  const { data: categories } = useQuery(categoriesQO());
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!catOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setCatOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setCatOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onEsc);
+    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onEsc); };
+  }, [catOpen]);
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+    <header ref={wrapRef} className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 text-white font-black shadow-lg shadow-fuchsia-500/30">D</div>
           <span className="text-lg font-bold tracking-tight">DIGIVAULT</span>
         </Link>
         <nav className="ml-6 hidden items-center gap-5 text-sm font-medium text-muted-foreground md:flex">
-          <Link to="/catalog" className="hover:text-foreground">Каталог</Link>
+          <button
+            type="button"
+            onClick={() => setCatOpen((v) => !v)}
+            className={`flex items-center gap-1 transition hover:text-foreground ${catOpen ? "text-foreground" : ""}`}
+          >
+            Каталог <ChevronDown className={`h-4 w-4 transition ${catOpen ? "rotate-180" : ""}`} />
+          </button>
           <Link to="/deals" className="hover:text-foreground">Скидки</Link>
           <Link to="/reviews" className="hover:text-foreground">Отзывы</Link>
           <Link to="/faq" className="hover:text-foreground">FAQ</Link>
@@ -37,6 +59,7 @@ export function Header() {
           </div>
         </nav>
       )}
+      {catOpen && categories && <CatalogMenu categories={categories} onClose={() => setCatOpen(false)} />}
     </header>
   );
 }
