@@ -378,7 +378,14 @@ function ProductPage() {
                         img: () => null,
                         a: ({ href, children, ...rest }) => {
                           const raw = typeof href === "string" ? href : "";
-                          const { href: finalHref, isPartner } = withAffiliate(raw);
+                          const { href: finalHref, isPartner, internal } = rewriteHref(raw);
+                          if (internal) {
+                            return (
+                              <Link to={finalHref} className="text-primary underline">
+                                {children}
+                              </Link>
+                            );
+                          }
                           return (
                             <a
                               {...rest}
