@@ -65,10 +65,59 @@ async function fetchVerdict(digisellerId: string): Promise<AvailabilityVerdict> 
     const json = await digisellerGet<ProductDataResp>(
       `/api/products/${encodeURIComponent(digisellerId)}/data?currency=RUR&lang=ru-RU`,
     );
-    return verdictFromResponse(json);
+    const apiVerdict = verdictFromResponse(json);
+    if (!apiVerdict.available) return apiVerdict;
+    // API claims available — double-check the public storefront page, because
+    // Digiseller's product/data endpoint often reports stale stock for OEM /
+    // unique-code items. The plati.market page is the same signal the user sees.
+    const pageVerdict = await fetchPageVerdict(digisellerId);
+    if (pageVerdict && !pageVerdict.available) return pageVerdict;
+    return apiVerdict;
   } catch (e) {
     console.error("[availability] fetch failed", digisellerId, e);
     return { available: false, reason: "fetch_error" };
+  }
+}
+
+/**
+ * Scrape the plati.market storefront page for the well-known "sold out" / "blocked"
+ * banners. Returns null when the page can't be fetched (treat as inconclusive).
+ */
+async function fetchPageVerdict(digisellerId: string): Promise<AvailabilityVerdict | null> {
+  try {
+    const r = await fetch(`https://plati.market/itm/${encodeURIComponent(digisellerId)}`, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; DigivaultAvailabilityBot/1.0; +https://digivault.app)",
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "ru,en;q=0.8",
+      },
+    });
+    if (!r.ok) return null;
+    const html = (await r.text()).toLowerCase();
+    if (
+      html.includes("этот товар закончился") ||
+      html.includes("товар закончился") ||
+      html.includes("sold out")
+    ) {
+      return { available: false, reason: "out_of_stock" };
+    }
+    if (html.includes("продажа товара приостановлена") || html.includes("приостановлена продажа")) {
+      return { available: false, reason: "paused" };
+    }
+    if (html.includes("товар заблокирован") || html.includes("заблокирован администрацией")) {
+      return { available: false, reason: "blocked" };
+    }
+    if (
+      html.includes("товар удалён") ||
+      html.includes("товар удален") ||
+      html.includes("товар не найден")
+    ) {
+      return { available: false, reason: "deleted" };
+    }
+    return { available: true };
+  } catch {
+    return null;
   }
 }
 
