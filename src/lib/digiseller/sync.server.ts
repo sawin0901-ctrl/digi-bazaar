@@ -207,6 +207,57 @@ async function enqueuePlatiIds(ids: string[], sourceProductId: string | null) {
     );
 }
 
+/** Replace any plati.market product URLs in `text` with internal /product/<slug>
+ *  links for products that already exist in our DB. Leaves unknown ids untouched
+ *  (they should be enqueued separately and rewritten on a later pass). */
+export async function rewritePlatiLinksToInternal(text: string): Promise<string> {
+  if (!text) return text;
+  const ids = extractPlatiItemIds(text);
+  if (ids.length === 0) return text;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("products")
+    .select("digiseller_id, slug")
+    .in("digiseller_id", ids);
+  const map = new Map<string, string>();
+  for (const r of data ?? []) {
+    if (r.digiseller_id && r.slug) map.set(r.digiseller_id, r.slug);
+  }
+  if (map.size === 0) return text;
+  return text.replace(
+    /https?:\/\/(?:www\.)?plati\.market\/itm\/(?:[^\s"'<>)]+?\/)?(\d{6,})(?:\?[^\s"'<>)]*)?/gi,
+    (full, id: string) => {
+      const slug = map.get(id);
+      return slug ? `/product/${slug}` : full;
+    },
+  );
+}
+
+/** After a product is (re)imported, walk other products whose description
+ *  still contains an external plati.market link to this digiseller_id and
+ *  rewrite those links to internal /product/<slug> URLs. */
+export async function refreshBacklinksFor(digisellerId: string): Promise<number> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("products")
+    .select("id, description, digiseller_id")
+    .ilike("description", `%plati.market/itm/%${digisellerId}%`)
+    .limit(500);
+  let updated = 0;
+  for (const p of data ?? []) {
+    if (p.digiseller_id === digisellerId) continue;
+    const newDesc = await rewritePlatiLinksToInternal(p.description ?? "");
+    if (newDesc && newDesc !== p.description) {
+      const { error } = await supabaseAdmin
+        .from("products")
+        .update({ description: newDesc })
+        .eq("id", p.id);
+      if (!error) updated++;
+    }
+  }
+  return updated;
+}
+
 /** Process one queued plati.market item — invoked by hourly cron. */
 export async function processOneFromImportQueue(): Promise<
   { processed: false } | { processed: true; digiseller_id: string; ok: boolean; error?: string }
@@ -252,6 +303,13 @@ export async function processOneFromImportQueue(): Promise<
       .from("product_import_queue")
       .update({ status: "done", processed_at: new Date().toISOString(), attempts: row.attempts + 1 })
       .eq("id", row.id);
+    // Rewrite external plati.market links to this product into internal links
+    // across every other card that already references it.
+    try {
+      await refreshBacklinksFor(row.digiseller_id);
+    } catch (e) {
+      console.error("[sync] refresh backlinks failed", e);
+    }
     return { processed: true, digiseller_id: row.digiseller_id, ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -501,6 +559,16 @@ export async function importDigisellerProductById(
   }
   if (!description) description = await generateUniqueDescription(title, catSlug);
 
+  // Enqueue any plati.market links we don't know yet, then rewrite known ones
+  // to internal /product/<slug> URLs before saving.
+  try {
+    const linkedIds = extractPlatiItemIds(description).filter((x) => x !== digisellerId);
+    if (linkedIds.length) await enqueuePlatiIds(linkedIds, null);
+  } catch (e) {
+    console.error("[sync] pre-save enqueue links failed", e);
+  }
+  description = await rewritePlatiLinksToInternal(description);
+
   // Look up existing row by digiseller_id (preferred) or slug to prevent duplicates.
   // If found, UPDATE in place (keep stable id/slug to preserve URLs and inbound links).
   // If not found, INSERT new.
@@ -572,12 +640,12 @@ export async function importDigisellerProductById(
       const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
       await generateAndSaveSeoForProduct(row.id);
     }
-    // Enqueue any plati.market links found in description for auto-import
+    // Re-write any external plati.market links pointing to THIS product in
+    // other cards' descriptions to internal links now that the row exists.
     try {
-      const linkedIds = extractPlatiItemIds(description).filter((x) => x !== digisellerId);
-      await enqueuePlatiIds(linkedIds, row?.id ?? null);
+      await refreshBacklinksFor(digisellerId);
     } catch (e) {
-      console.error("[sync] enqueue plati links failed", e);
+      console.error("[sync] refresh backlinks failed", e);
     }
   } catch (e) {
     console.error("[sync] seo gen after import failed", e);
@@ -636,6 +704,16 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       if (info) desc += info;
       if (addInfo) desc += (desc ? "\n\n" : "") + "Инструкция и правила покупки\n\n" + addInfo;
       if (desc) patch.description = desc;
+      // Enqueue unknown linked items, rewrite known ones inline.
+      try {
+        const linkedIds = extractPlatiItemIds(desc).filter((x) => x !== p.digiseller_id);
+        if (linkedIds.length) await enqueuePlatiIds(linkedIds, p.id);
+      } catch (e) {
+        console.error("[sync] enqueue plati links failed", e);
+      }
+      if (patch.description) {
+        patch.description = await rewritePlatiLinksToInternal(patch.description);
+      }
       const imgs = extractImages(pd);
       const vids = extractVideos(pd);
       patch.images = imgs;
@@ -652,13 +730,6 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       }
       const { error } = await supabaseAdmin.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
-      // Enqueue plati links from updated description
-      try {
-        const linkedIds = extractPlatiItemIds(patch.description ?? "").filter((x) => x !== p.digiseller_id);
-        await enqueuePlatiIds(linkedIds, p.id);
-      } catch (e) {
-        console.error("[sync] enqueue plati links failed", e);
-      }
       // SEO regen if not locked
       try {
         const { data: cur } = await supabaseAdmin
