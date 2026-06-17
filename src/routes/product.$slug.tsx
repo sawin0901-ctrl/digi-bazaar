@@ -344,11 +344,45 @@ function ProductPage() {
 
             {tab === "description" && (
               <div className="prose prose-sm mt-5 max-w-3xl dark:prose-invert prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary">
+                {cleanDescription && (
+                  <div className="not-prose mb-6">
+                    <h2 className="mb-3 text-lg font-bold">Описание товара</h2>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        img: () => null,
+                        a: ({ href, children, ...rest }) => {
+                          const raw = typeof href === "string" ? href : "";
+                          const { href: finalHref, isPartner } = withAffiliate(raw);
+                          return (
+                            <a
+                              {...rest}
+                              href={finalHref}
+                              target="_blank"
+                              rel={isPartner ? "noopener nofollow sponsored" : "noopener noreferrer"}
+                              className="text-primary underline"
+                            >
+                              {children}
+                            </a>
+                          );
+                        },
+                        p: ({ children }) => (
+                          <p className="mb-2 text-sm leading-relaxed text-foreground/90">{children}</p>
+                        ),
+                      }}
+                    >
+                      {cleanDescription}
+                    </ReactMarkdown>
+                  </div>
+                )}
                 {product.full_description && (
-                  <div className="not-prose mb-6 space-y-3 text-sm leading-relaxed text-foreground/90">
-                    {product.full_description.split(/\n\n+/).map((para, i) => (
-                      <p key={i}>{para}</p>
-                    ))}
+                  <div className="not-prose mb-6">
+                    <h2 className="mb-3 text-lg font-bold">Кратко о товаре</h2>
+                    <div className="space-y-3 text-sm leading-relaxed text-foreground/90">
+                      {product.full_description.split(/\n\n+/).map((para, i) => (
+                        <p key={i}>{para}</p>
+                      ))}
+                    </div>
                   </div>
                 )}
                 {product.advantages.length > 0 && (
@@ -397,40 +431,6 @@ function ProductPage() {
                       ))}
                     </div>
                   </div>
-                )}
-                {!product.full_description && (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    img: () => null,
-                    a: ({ href, children, ...rest }) => {
-                      const raw = typeof href === "string" ? href : "";
-                      const { href: finalHref, isPartner } = withAffiliate(raw);
-                      return (
-                        <a
-                          {...rest}
-                          href={finalHref}
-                          target="_blank"
-                          rel={isPartner ? "noopener nofollow sponsored" : "noopener noreferrer"}
-                          onClick={() => {
-                            if (!isPartner) return;
-                            logClickFn({
-                              data: {
-                                productSlug: product.slug,
-                                variantLabel: `desc_link:${raw}`,
-                                referer: typeof document !== "undefined" ? document.referrer || null : null,
-                              },
-                            }).catch(() => {});
-                          }}
-                        >
-                          {children}
-                        </a>
-                      );
-                    },
-                  }}
-                >
-                  {cleanDescription}
-                </ReactMarkdown>
                 )}
               </div>
             )}
