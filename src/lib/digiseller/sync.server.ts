@@ -115,6 +115,37 @@ function productUrl(id: number): string {
   return `https://plati.market/itm/${id}?ai=${AGENT_ID}`;
 }
 
+/** Fetch plati.market product page and extract the top-level catalog
+ *  breadcrumb (e.g. "Игры", "Программное обеспечение"). Returns null if
+ *  the page cannot be parsed.
+ */
+async function fetchPlatiTopCategory(itemId: string): Promise<{ slug: string; name: string } | null> {
+  try {
+    const res = await fetch(`https://plati.market/itm/${itemId}`, {
+      headers: { "User-Agent": "Mozilla/5.0", Accept: "text/html" },
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    // Crumbs look like: <a href="/cat/<slug>/<id>/"><span>Name</span></a>
+    const re = /<a[^>]+href="\/cat\/([^"\/]+)\/\d+\/?"[^>]*>\s*<span[^>]*>([^<]+)<\/span>\s*<\/a>/gi;
+    const m = re.exec(html);
+    if (!m) return null;
+    const slug = m[1].trim().toLowerCase();
+    const name = m[2].trim();
+    if (!slug || !name) return null;
+    return { slug: `plati-${slug}`, name };
+  } catch {
+    return null;
+  }
+}
+
+async function ensureCategoryRow(slug: string, name: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("categories")
+    .upsert([{ slug, name, is_active: true }], { onConflict: "slug" });
+}
+
 /** Extract numeric plati.market itm IDs from arbitrary text/HTML. */
 export function extractPlatiItemIds(text: string | null | undefined): string[] {
   if (!text) return [];
@@ -392,13 +423,19 @@ export async function importDigisellerProductById(
   const slug = `digi-${digisellerId}`;
 
   // Ensure category exists
-  const catSlug = categorySlug && categorySlug.trim() ? categorySlug.trim() : "cat-imported";
-  await supabaseAdmin
-    .from("categories")
-    .upsert(
-      [{ slug: catSlug, name: catSlug === "cat-imported" ? "Импорт" : catSlug, is_active: true }],
-      { onConflict: "slug" },
-    );
+  let catSlug = categorySlug && categorySlug.trim() ? categorySlug.trim() : "";
+  if (!catSlug) {
+    const platiCat = await fetchPlatiTopCategory(digisellerId);
+    if (platiCat) {
+      catSlug = platiCat.slug;
+      await ensureCategoryRow(platiCat.slug, platiCat.name);
+    } else {
+      catSlug = "cat-imported";
+      await ensureCategoryRow("cat-imported", "Импорт");
+    }
+  } else {
+    await ensureCategoryRow(catSlug, catSlug);
+  }
 
   // Description: prefer the real product description from plati.market / Digiseller
   // (info = описание, add_info = инструкция/правила покупки). Fall back to an
@@ -481,7 +518,7 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
   // Oldest synced first (NULLS FIRST), limited batch
   const { data: rows } = await supabaseAdmin
     .from("products")
-    .select("id, slug, digiseller_id")
+    .select("id, slug, digiseller_id, category_slug")
     .not("digiseller_id", "is", null)
     .order("last_synced_at", { ascending: true, nullsFirst: true })
     .limit(limit);
@@ -530,6 +567,15 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       patch.images = imgs;
       patch.videos = vids;
       if (pd.image) patch.image = pd.image;
+      // If this product was dumped into the catch-all "Импорт" category,
+      // try to re-resolve its real category from plati.market.
+      if (p.category_slug === "cat-imported") {
+        const platiCat = await fetchPlatiTopCategory(p.digiseller_id);
+        if (platiCat) {
+          await ensureCategoryRow(platiCat.slug, platiCat.name);
+          patch.category_slug = platiCat.slug;
+        }
+      }
       const { error } = await supabaseAdmin.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
       // Enqueue plati links from updated description
