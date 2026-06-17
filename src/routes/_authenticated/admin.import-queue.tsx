@@ -66,7 +66,7 @@ function ImportQueuePage() {
             </p>
           </div>
           <Link
-            to="/_authenticated/admin"
+            to="/admin"
             className="rounded-xl border border-border px-4 py-2 text-sm hover:bg-muted"
           >
             ← В админку
