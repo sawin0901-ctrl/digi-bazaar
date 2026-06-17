@@ -12,6 +12,20 @@ type DigiSellerWin = Window & { DigiSeller?: (container?: HTMLElement) => void }
 
 const inflight = new Map<string, Promise<void>>();
 
+function getDigisellerCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(new RegExp("(?:^|; )digiseller-" + name + "=([^;]*)"));
+  return m ? m[1] : null;
+}
+
+function buildScriptSrc(sellerId: string): string {
+  const lang = getDigisellerCookie("lang");
+  const cart = getDigisellerCookie("cart_uid");
+  const langParam = lang ? "&lang=" + lang : "";
+  const cartParam = cart ? "&cart_uid=" + cart : "";
+  return `//digiseller.com/store2/digiseller-api.js.asp?seller_id=${sellerId}${langParam}${cartParam}`;
+}
+
 function injectCss(sellerId: string) {
   if (document.getElementById(CSS_ID)) return;
   const link = document.createElement("link");
@@ -34,7 +48,7 @@ function loadScriptOnce(sellerId: string): Promise<void> {
       script.async = true;
       script.defer = true;
       script.id = SCRIPT_ID;
-      script.src = `//digiseller.com/store2/digiseller-api.js.asp?seller_id=${sellerId}`;
+      script.src = buildScriptSrc(sellerId);
       document.head.appendChild(script);
     }
     const timer = window.setTimeout(() => {
