@@ -1,14 +1,15 @@
 import { createHash } from "crypto";
 
-const BASE = "https://api.digiseller.com";
+const BASE = "https://api.digiseller.ru";
+const DEFAULT_SELLER_ID = "1022102";
 
 type TokenCache = { token: string; valid_thru: number };
 let cached: TokenCache | null = null;
 
 export function getSellerId(): string {
   const id = process.env.DIGISELLER_SELLER_ID;
-  if (!id) throw new Error("DIGISELLER_SELLER_ID is not configured");
-  return id;
+  if (id && /^\d+$/.test(id.trim())) return id.trim();
+  return DEFAULT_SELLER_ID;
 }
 
 export async function getDigisellerToken(): Promise<string> {
