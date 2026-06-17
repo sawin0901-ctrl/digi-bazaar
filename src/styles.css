@@ -155,6 +155,14 @@
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+.digiseller-embed .digiseller-buy-standalone > div,
+.digiseller-embed .digiseller-buy-standalone form {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 .digiseller-embed table {
   width: 100% !important;
@@ -173,7 +181,6 @@
   max-width: 100% !important;
   height: auto !important;
 }
-.digiseller-embed a,
 .digiseller-embed input[type="submit"],
 .digiseller-embed input[type="button"],
 .digiseller-embed button,
@@ -195,11 +202,26 @@
   text-decoration: none !important;
   box-shadow: 0 8px 24px -8px oklch(0.65 0.22 295 / 0.5) !important;
 }
-.digiseller-embed a:hover,
 .digiseller-embed input[type="submit"]:hover,
 .digiseller-embed input[type="button"]:hover,
 .digiseller-embed button:hover {
   opacity: 0.9 !important;
+}
+.digiseller-embed a {
+  color: var(--color-primary) !important;
+  text-decoration: none !important;
+  background: transparent !important;
+}
+.digiseller-embed a:hover {
+  text-decoration: underline !important;
+}
+/* Share icons — keep original images visible */
+.digiseller-embed a img {
+  border-radius: 0 !important;
+  display: inline-block !important;
+  width: auto !important;
+  max-width: none !important;
+  height: auto !important;
 }
 .digiseller-embed select,
 .digiseller-embed input[type="text"],
