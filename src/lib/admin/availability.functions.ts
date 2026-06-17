@@ -41,19 +41,18 @@ export const adminAvailabilityOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
+    const db = context.supabase;
     const [{ count: activeCount }, { count: hiddenCount }, { data: hiddenRows }, { data: logRows }] =
       await Promise.all([
-        supabaseAdmin.from("products").select("id", { count: "exact", head: true }).eq("is_active", true),
-        supabaseAdmin.from("products").select("id", { count: "exact", head: true }).eq("is_active", false),
-        supabaseAdmin
+        db.from("products").select("id", { count: "exact", head: true }).eq("is_active", true),
+        db.from("products").select("id", { count: "exact", head: true }).eq("is_active", false),
+        db
           .from("products")
           .select("id,slug,title,digiseller_id,is_active,hidden_at,hide_reason,last_checked_at,last_available_at")
           .eq("is_active", false)
           .order("hidden_at", { ascending: true, nullsFirst: false })
           .limit(200),
-        supabaseAdmin
+        db
           .from("product_availability_log")
           .select("id,product_id,digiseller_id,slug,event,reason,created_at")
           .order("created_at", { ascending: false })
