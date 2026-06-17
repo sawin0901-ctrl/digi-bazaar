@@ -423,13 +423,19 @@ export async function importDigisellerProductById(
   const slug = `digi-${digisellerId}`;
 
   // Ensure category exists
-  const catSlug = categorySlug && categorySlug.trim() ? categorySlug.trim() : "cat-imported";
-  await supabaseAdmin
-    .from("categories")
-    .upsert(
-      [{ slug: catSlug, name: catSlug === "cat-imported" ? "Импорт" : catSlug, is_active: true }],
-      { onConflict: "slug" },
-    );
+  let catSlug = categorySlug && categorySlug.trim() ? categorySlug.trim() : "";
+  if (!catSlug) {
+    const platiCat = await fetchPlatiTopCategory(digisellerId);
+    if (platiCat) {
+      catSlug = platiCat.slug;
+      await ensureCategoryRow(platiCat.slug, platiCat.name);
+    } else {
+      catSlug = "cat-imported";
+      await ensureCategoryRow("cat-imported", "Импорт");
+    }
+  } else {
+    await ensureCategoryRow(catSlug, catSlug);
+  }
 
   // Description: prefer the real product description from plati.market / Digiseller
   // (info = описание, add_info = инструкция/правила покупки). Fall back to an
