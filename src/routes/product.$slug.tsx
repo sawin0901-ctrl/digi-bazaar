@@ -169,11 +169,11 @@ function ProductPage() {
                     ))}
                   </div>
                 )}
-                <div className="flex aspect-square w-full max-w-[340px] items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted p-3">
+                <div className="flex w-full max-w-[340px] items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted p-3">
                   <img
                     src={allImages[activeImage] ?? product.image}
                     alt={product.title}
-                    className="h-full w-full object-contain"
+                    className="h-auto w-full object-contain"
                   />
                 </div>
               </div>
