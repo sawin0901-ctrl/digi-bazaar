@@ -166,3 +166,19 @@ export const logClick = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+/** Return the subset of digiseller IDs that already exist as products on this site. */
+export const getKnownDigisellerIds = createServerFn({ method: "POST" })
+  .inputValidator((d: { ids: string[] }) => d)
+  .handler(async ({ data }): Promise<string[]> => {
+    const ids = (data.ids ?? []).filter(Boolean).slice(0, 200);
+    if (ids.length === 0) return [];
+    const sb = publicSupabase();
+    const { data: rows, error } = await sb
+      .from("products")
+      .select("digiseller_id")
+      .in("digiseller_id", ids)
+      .eq("is_active", true);
+    if (error) return [];
+    return (rows ?? []).map((r) => r.digiseller_id).filter((v): v is string => !!v);
+  });
