@@ -132,6 +132,12 @@ function AdminPage() {
             >
               Очередь импорта
             </Link>
+            <Link
+              to="/admin-availability"
+              className="rounded-xl border border-border bg-card px-3 py-2 text-sm hover:bg-muted"
+            >
+              Доступность
+            </Link>
             <button onClick={handleSignOut} className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-sm hover:bg-muted">
               <LogOut className="h-4 w-4" /> Выйти
             </button>
