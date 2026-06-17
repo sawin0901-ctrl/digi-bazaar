@@ -518,7 +518,7 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
   // Oldest synced first (NULLS FIRST), limited batch
   const { data: rows } = await supabaseAdmin
     .from("products")
-    .select("id, slug, digiseller_id")
+    .select("id, slug, digiseller_id, category_slug")
     .not("digiseller_id", "is", null)
     .order("last_synced_at", { ascending: true, nullsFirst: true })
     .limit(limit);
@@ -567,6 +567,15 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       patch.images = imgs;
       patch.videos = vids;
       if (pd.image) patch.image = pd.image;
+      // If this product was dumped into the catch-all "Импорт" category,
+      // try to re-resolve its real category from plati.market.
+      if (p.category_slug === "cat-imported") {
+        const platiCat = await fetchPlatiTopCategory(p.digiseller_id);
+        if (platiCat) {
+          await ensureCategoryRow(platiCat.slug, platiCat.name);
+          patch.category_slug = platiCat.slug;
+        }
+      }
       const { error } = await supabaseAdmin.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
       // Enqueue plati links from updated description
