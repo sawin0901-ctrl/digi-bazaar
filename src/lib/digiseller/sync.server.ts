@@ -351,7 +351,12 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       };
       if (pd.name) patch.title = pd.name;
       if (newPrice > 0) patch.price = newPrice;
-      if (typeof pd.cnt_sell === "number") patch.sales = pd.cnt_sell;
+      const stats = computeSellerStats(pd);
+      patch.sales = stats.sales;
+      patch.reviews = stats.reviews;
+      patch.rating = stats.rating;
+      patch.seller = stats.sellerName;
+      patch.seller_rating = stats.rating;
       const info = sanitizeDigisellerHtml(pd.info ?? "");
       const addInfo = sanitizeDigisellerHtml(pd.add_info ?? "");
       let desc = "";
