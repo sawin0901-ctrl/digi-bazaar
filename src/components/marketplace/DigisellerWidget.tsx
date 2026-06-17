@@ -52,6 +52,7 @@ export function DigisellerWidget({
   }, [sellerId]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     // Try to re-initialize if the Digiseller API is already loaded
     const w = window as unknown as Record<string, unknown>;
     if (typeof w.DigiSeller === "function" && containerRef.current) {
