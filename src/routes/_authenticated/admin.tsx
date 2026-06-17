@@ -413,3 +413,302 @@ function Field({ label, full, children }: { label: string; full?: boolean; child
     </label>
   );
 }
+
+function SeoSection({ isAdmin }: { isAdmin: boolean }) {
+  const qc = useQueryClient();
+  const listFn = useServerFn(adminListSeo);
+  const getFn = useServerFn(adminGetSeo);
+  const regenFn = useServerFn(adminRegenerateSeo);
+  const updateFn = useServerFn(adminUpdateSeo);
+  const lockFn = useServerFn(adminToggleSeoLock);
+  const bulkFn = useServerFn(adminBulkRegenerateSeo);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const rows = useQuery({
+    queryKey: ["admin", "seo"],
+    queryFn: () => listFn(),
+    enabled: isAdmin,
+  });
+
+  const regenMut = useMutation({
+    mutationFn: (id: string) => regenFn({ data: { productId: id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "seo"] }),
+  });
+  const lockMut = useMutation({
+    mutationFn: (v: { id: string; locked: boolean }) =>
+      lockFn({ data: { productId: v.id, locked: v.locked } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "seo"] }),
+  });
+  const bulkMut = useMutation({
+    mutationFn: () => bulkFn({ data: { limit: 20 } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "seo"] }),
+  });
+
+  if (!isAdmin) return null;
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold">AI SEO-контент</h2>
+          <p className="text-xs text-muted-foreground">
+            Нейросеть автоматически создаёт уникальные SEO-данные для каждой карточки.
+          </p>
+        </div>
+        <button
+          onClick={() => bulkMut.mutate()}
+          disabled={bulkMut.isPending}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/30 disabled:opacity-50"
+        >
+          <Sparkles className="h-4 w-4" />
+          {bulkMut.isPending ? "Генерация…" : "Перегенерировать 20 старейших"}
+        </button>
+      </div>
+      {bulkMut.data && (
+        <p className="mt-2 text-xs text-emerald-500">
+          Готово: {bulkMut.data.ok} ок · {bulkMut.data.fail} ошибок (из {bulkMut.data.processed})
+        </p>
+      )}
+
+      <div className="mt-4 overflow-hidden rounded-2xl border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="p-3">Товар / SEO Title</th>
+              <th className="p-3">Score</th>
+              <th className="p-3">Сгенерировано</th>
+              <th className="p-3">Lock</th>
+              <th className="p-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.data?.map((r) => (
+              <tr key={r.id} className="border-t border-border align-top">
+                <td className="p-3">
+                  <div className="font-semibold">{r.title}</div>
+                  <div className="line-clamp-1 text-xs text-muted-foreground">
+                    {r.seo_title || <span className="italic">— нет SEO —</span>}
+                  </div>
+                </td>
+                <td className="p-3">
+                  <span
+                    className={
+                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold " +
+                      (r.seo_score >= 80
+                        ? "bg-emerald-500/15 text-emerald-500"
+                        : r.seo_score >= 50
+                          ? "bg-amber-500/15 text-amber-500"
+                          : "bg-rose-500/15 text-rose-500")
+                    }
+                  >
+                    {r.seo_score}
+                  </span>
+                </td>
+                <td className="p-3 text-xs text-muted-foreground">
+                  {r.seo_generated_at ? new Date(r.seo_generated_at).toLocaleString("ru-RU") : "—"}
+                </td>
+                <td className="p-3">
+                  <button
+                    onClick={() => lockMut.mutate({ id: r.id, locked: !r.seo_locked })}
+                    className={
+                      "inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs " +
+                      (r.seo_locked
+                        ? "border-amber-500/40 text-amber-500"
+                        : "border-border text-muted-foreground hover:bg-muted")
+                    }
+                  >
+                    {r.seo_locked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                    {r.seo_locked ? "заблокирован" : "авто"}
+                  </button>
+                </td>
+                <td className="p-3 text-right">
+                  <button
+                    onClick={() => regenMut.mutate(r.id)}
+                    disabled={regenMut.isPending && regenMut.variables === r.id}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+                  >
+                    <RefreshCw className="h-3 w-3" /> Перегенер.
+                  </button>
+                  <button
+                    onClick={() => setEditingId(r.id)}
+                    className="ml-2 inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted"
+                  >
+                    Изменить
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {rows.data?.length === 0 && (
+              <tr>
+                <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                  Нет товаров
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {editingId && (
+        <SeoEditDialog
+          productId={editingId}
+          getFn={getFn}
+          updateFn={updateFn}
+          onClose={() => setEditingId(null)}
+          onSaved={() => {
+            qc.invalidateQueries({ queryKey: ["admin", "seo"] });
+            setEditingId(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+type SeoGetFn = ReturnType<typeof useServerFn<typeof adminGetSeo>>;
+type SeoUpdateFn = ReturnType<typeof useServerFn<typeof adminUpdateSeo>>;
+
+function SeoEditDialog({
+  productId,
+  getFn,
+  updateFn,
+  onClose,
+  onSaved,
+}: {
+  productId: string;
+  getFn: SeoGetFn;
+  updateFn: SeoUpdateFn;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const q = useQuery({
+    queryKey: ["admin", "seo", productId],
+    queryFn: () => getFn({ data: { productId } }),
+  });
+  const [f, setF] = useState<{
+    seo_title: string;
+    seo_description: string;
+    seo_keywords: string;
+    seo_h1: string;
+    short_description: string;
+    full_description: string;
+    instructions: string;
+    advantages: string;
+    features: string;
+    faq: string;
+  } | null>(null);
+
+  if (q.data && !f) {
+    setF({
+      seo_title: q.data.seo_title ?? "",
+      seo_description: q.data.seo_description ?? "",
+      seo_keywords: q.data.seo_keywords ?? "",
+      seo_h1: q.data.seo_h1 ?? "",
+      short_description: q.data.short_description ?? "",
+      full_description: q.data.full_description ?? "",
+      instructions: q.data.instructions ?? "",
+      advantages: (Array.isArray(q.data.advantages) ? (q.data.advantages as string[]) : []).join("\n"),
+      features: (Array.isArray(q.data.features) ? (q.data.features as string[]) : []).join("\n"),
+      faq: JSON.stringify(
+        Array.isArray(q.data.faq) ? q.data.faq : [],
+        null,
+        2,
+      ),
+    });
+  }
+
+  const saveMut = useMutation({
+    mutationFn: async () => {
+      if (!f) return;
+      let faqParsed: { question: string; answer: string }[] = [];
+      try {
+        const j = JSON.parse(f.faq);
+        if (Array.isArray(j)) faqParsed = j;
+      } catch {
+        throw new Error("FAQ должен быть валидным JSON-массивом [{question, answer}]");
+      }
+      await updateFn({
+        data: {
+          productId,
+          seo_title: f.seo_title,
+          seo_description: f.seo_description,
+          seo_keywords: f.seo_keywords,
+          seo_h1: f.seo_h1,
+          short_description: f.short_description,
+          full_description: f.full_description,
+          instructions: f.instructions,
+          advantages: f.advantages.split("\n").map((s) => s.trim()).filter(Boolean),
+          features: f.features.split("\n").map((s) => s.trim()).filter(Boolean),
+          faq: faqParsed,
+        },
+      });
+    },
+    onSuccess: onSaved,
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur">
+      <div className="mt-8 w-full max-w-3xl rounded-3xl border border-border bg-card p-6 shadow-2xl">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold">Редактирование SEO</h2>
+          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {!f ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">Загрузка…</div>
+        ) : (
+          <>
+            <div className="mt-5 grid gap-3">
+              <Field label="SEO Title" full>
+                <input value={f.seo_title} onChange={(e) => setF({ ...f, seo_title: e.target.value })} className={inp} />
+              </Field>
+              <Field label="Meta Description" full>
+                <textarea value={f.seo_description} onChange={(e) => setF({ ...f, seo_description: e.target.value })} rows={2} className={inp} />
+              </Field>
+              <Field label="Meta Keywords (через запятую)" full>
+                <input value={f.seo_keywords} onChange={(e) => setF({ ...f, seo_keywords: e.target.value })} className={inp} />
+              </Field>
+              <Field label="H1" full>
+                <input value={f.seo_h1} onChange={(e) => setF({ ...f, seo_h1: e.target.value })} className={inp} />
+              </Field>
+              <Field label="Краткое описание" full>
+                <textarea value={f.short_description} onChange={(e) => setF({ ...f, short_description: e.target.value })} rows={2} className={inp} />
+              </Field>
+              <Field label="Полное описание" full>
+                <textarea value={f.full_description} onChange={(e) => setF({ ...f, full_description: e.target.value })} rows={6} className={inp} />
+              </Field>
+              <Field label="Преимущества (одно на строку)" full>
+                <textarea value={f.advantages} onChange={(e) => setF({ ...f, advantages: e.target.value })} rows={4} className={inp} />
+              </Field>
+              <Field label="Особенности (одно на строку)" full>
+                <textarea value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} rows={4} className={inp} />
+              </Field>
+              <Field label="Инструкция" full>
+                <textarea value={f.instructions} onChange={(e) => setF({ ...f, instructions: e.target.value })} rows={4} className={inp} />
+              </Field>
+              <Field label="FAQ (JSON: [{question, answer}])" full>
+                <textarea value={f.faq} onChange={(e) => setF({ ...f, faq: e.target.value })} rows={6} className={inp + " font-mono text-xs"} />
+              </Field>
+            </div>
+            {saveMut.error && <p className="mt-3 text-sm text-rose-500">{saveMut.error.message}</p>}
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={onClose} className="rounded-xl border border-border bg-background px-4 py-2 text-sm">
+                Отмена
+              </button>
+              <button
+                onClick={() => saveMut.mutate()}
+                disabled={saveMut.isPending}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/30 disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" /> {saveMut.isPending ? "Сохранение…" : "Сохранить"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
