@@ -207,6 +207,57 @@ async function enqueuePlatiIds(ids: string[], sourceProductId: string | null) {
     );
 }
 
+/** Replace any plati.market product URLs in `text` with internal /product/<slug>
+ *  links for products that already exist in our DB. Leaves unknown ids untouched
+ *  (they should be enqueued separately and rewritten on a later pass). */
+export async function rewritePlatiLinksToInternal(text: string): Promise<string> {
+  if (!text) return text;
+  const ids = extractPlatiItemIds(text);
+  if (ids.length === 0) return text;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("products")
+    .select("digiseller_id, slug")
+    .in("digiseller_id", ids);
+  const map = new Map<string, string>();
+  for (const r of data ?? []) {
+    if (r.digiseller_id && r.slug) map.set(r.digiseller_id, r.slug);
+  }
+  if (map.size === 0) return text;
+  return text.replace(
+    /https?:\/\/(?:www\.)?plati\.market\/itm\/(?:[^\s"'<>)]+?\/)?(\d{6,})(?:\?[^\s"'<>)]*)?/gi,
+    (full, id: string) => {
+      const slug = map.get(id);
+      return slug ? `/product/${slug}` : full;
+    },
+  );
+}
+
+/** After a product is (re)imported, walk other products whose description
+ *  still contains an external plati.market link to this digiseller_id and
+ *  rewrite those links to internal /product/<slug> URLs. */
+export async function refreshBacklinksFor(digisellerId: string): Promise<number> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("products")
+    .select("id, description, digiseller_id")
+    .ilike("description", `%plati.market/itm/%${digisellerId}%`)
+    .limit(500);
+  let updated = 0;
+  for (const p of data ?? []) {
+    if (p.digiseller_id === digisellerId) continue;
+    const newDesc = await rewritePlatiLinksToInternal(p.description ?? "");
+    if (newDesc && newDesc !== p.description) {
+      const { error } = await supabaseAdmin
+        .from("products")
+        .update({ description: newDesc })
+        .eq("id", p.id);
+      if (!error) updated++;
+    }
+  }
+  return updated;
+}
+
 /** Process one queued plati.market item — invoked by hourly cron. */
 export async function processOneFromImportQueue(): Promise<
   { processed: false } | { processed: true; digiseller_id: string; ok: boolean; error?: string }
@@ -252,6 +303,13 @@ export async function processOneFromImportQueue(): Promise<
       .from("product_import_queue")
       .update({ status: "done", processed_at: new Date().toISOString(), attempts: row.attempts + 1 })
       .eq("id", row.id);
+    // Rewrite external plati.market links to this product into internal links
+    // across every other card that already references it.
+    try {
+      await refreshBacklinksFor(row.digiseller_id);
+    } catch (e) {
+      console.error("[sync] refresh backlinks failed", e);
+    }
     return { processed: true, digiseller_id: row.digiseller_id, ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
