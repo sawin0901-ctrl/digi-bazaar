@@ -122,6 +122,9 @@ export const listDigisellerProducts = createServerFn({ method: "GET" })
     const json = await digisellerPost<SellerGoodsResp>("/api/seller-goods", body, true);
     if (json.retval !== 0) throw digisellerError("seller-goods", json);
     const rows = json.rows ?? json.product ?? [];
+    if (rows.length === 0) {
+      throw new Error(`seller-goods: Digiseller вернул 0 товаров для seller_id ${id_seller}. Проверьте, что DIGISELLER_SELLER_ID — это ID продавца с товарами, а API-ключ создан именно для него.`);
+    }
     return rows.map((r) => mapRow(r, categorySlug));
   });
 
