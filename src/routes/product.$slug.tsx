@@ -143,7 +143,8 @@ function ProductPage() {
         </nav>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="rounded-3xl border border-border bg-card p-5 md:p-7">
+          <div>
+            <div className="rounded-3xl border border-border bg-card p-5 md:p-7">
             <div className="grid gap-6 md:grid-cols-[auto_1fr]">
               <div className="flex gap-3">
                 {allImages.length > 1 && (
