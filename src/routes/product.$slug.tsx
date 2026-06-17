@@ -248,9 +248,9 @@ function ProductPage() {
                     productId={String(product.digiseller_id)}
                     agentId={PARTNER_ID}
                     sellerId={SELLER_ID}
-                    imgSize={1}
                     showName={false}
                     showPrice={false}
+                    showImage={false}
                   />
                 </div>
               </div>
