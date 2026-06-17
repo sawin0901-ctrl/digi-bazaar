@@ -197,50 +197,6 @@ function ProductPage() {
               </div>
             </div>
 
-            {hasVariants && (
-              <div className="mt-7">
-                <div className="flex items-center gap-1 text-sm">
-                  <span className="text-muted-foreground">{product.variant_label ?? "Выберите вариант"}</span>
-                  <span className="text-rose-500">*</span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {product.variants.map((v) => {
-                    const active = v.label === variant;
-                    return (
-                      <button
-                        key={v.label}
-                        type="button"
-                        onClick={() => setVariant(v.label)}
-                        className={
-                          "rounded-xl border px-3.5 py-2 text-sm transition " +
-                          (active
-                            ? "border-primary bg-primary/10 font-semibold text-primary shadow-sm"
-                            : "border-border bg-background hover:border-primary/40 hover:bg-muted")
-                        }
-                      >
-                        {v.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-background/50 p-4 text-sm">
-                  <span
-                    onClick={(e) => { e.preventDefault(); setAgreed((v) => !v); }}
-                    className={
-                      "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border transition " +
-                      (agreed ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background")
-                    }
-                  >
-                    {agreed && <Check className="h-3.5 w-3.5" />}
-                  </span>
-                  <span className="text-muted-foreground">
-                    Я внимательно прочитал описание товара и полностью принимаю его.
-                  </span>
-                  <input type="checkbox" className="sr-only" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-                </label>
-              </div>
-            )}
 
           </div>
         </div>
