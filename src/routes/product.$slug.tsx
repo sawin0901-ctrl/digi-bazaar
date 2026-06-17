@@ -240,6 +240,21 @@ function ProductPage() {
                 </label>
               </div>
             )}
+
+            {product.digiseller_id && (
+              <div className="mt-7 border-t border-border pt-6">
+                <div className="digiseller-embed digiseller-inline">
+                  <DigisellerWidget
+                    productId={String(product.digiseller_id)}
+                    agentId={PARTNER_ID}
+                    sellerId={SELLER_ID}
+                    imgSize={1}
+                    showName={false}
+                    showPrice={false}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <aside className="lg:sticky lg:top-24 lg:self-start">
