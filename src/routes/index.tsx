@@ -158,8 +158,8 @@ function Index() {
         </div>
 
         {/* Big visual category cards */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {categories.slice(0, 8).map((c) => {
+        <div className="mt-6 grid auto-rows-fr grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {categories.map((c) => {
             const Icon = iconFor(c.slug);
             return (
               <Link
