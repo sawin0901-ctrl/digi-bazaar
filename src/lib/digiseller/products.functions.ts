@@ -114,7 +114,7 @@ export const listDigisellerProducts = createServerFn({ method: "GET" })
       lang: "ru-RU",
       show_hidden: 0,
     };
-    const json = await digisellerPost<SellerGoodsResp>("/api/seller-goods", body);
+    const json = await digisellerPost<SellerGoodsResp>("/api/seller-goods", body, true);
     if (json.retval !== 0) return [];
     const rows = json.rows ?? json.product ?? [];
     return rows.map((r) => mapRow(r, categorySlug));
