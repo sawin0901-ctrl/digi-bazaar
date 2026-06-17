@@ -5,8 +5,8 @@ import { Mail, MessageCircle, Phone } from "lucide-react";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Контакты — DIGIVAULT" },
-      { name: "description", content: "Свяжитесь с командой DIGIVAULT. Поддержка 24/7, среднее время ответа — менее 3 минут." },
+      { title: "Контакты — GamePlaza" },
+      { name: "description", content: "Свяжитесь с командой GamePlaza. Поддержка 24/7, среднее время ответа — менее 3 минут." },
     ],
   }),
   component: () => (
@@ -16,8 +16,8 @@ export const Route = createFileRoute("/contact")({
         <p className="mt-2 text-sm text-muted-foreground">Поддержка 24/7. Среднее время ответа — менее 3 минут.</p>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {[
-            { icon: Mail, title: "Email", value: "support@digivault.ru" },
-            { icon: MessageCircle, title: "Telegram", value: "@digivault" },
+            { icon: Mail, title: "Email", value: "support@gameplaza.site" },
+            { icon: MessageCircle, title: "Telegram", value: "@gameplaza" },
             { icon: Phone, title: "Телефон", value: "+7 (800) 555-00-00" },
           ].map((c) => (
             <div key={c.title} className="rounded-2xl border border-border bg-card p-6">

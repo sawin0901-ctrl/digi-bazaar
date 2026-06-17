@@ -8,7 +8,7 @@ export const Route = createFileRoute("/deals")({
   loader: ({ context }) => context.queryClient.ensureQueryData(productsQO({ dealsOnly: true })),
   head: () => ({
     meta: [
-      { title: "Скидки до −70% — DIGIVAULT" },
+      { title: "Скидки до −70% — GamePlaza" },
       { name: "description", content: "Лучшие скидки на цифровые товары — игры, подписки, ключи и софт." },
     ],
   }),

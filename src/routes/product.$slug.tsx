@@ -59,9 +59,9 @@ export const Route = createFileRoute("/product/$slug")({
   head: ({ params, loaderData }) => {
     const p = loaderData?.product;
     if (!p) {
-      return { meta: [{ title: `Товар ${params.slug} — DIGIVAULT` }] };
+      return { meta: [{ title: `Товар ${params.slug} — GamePlaza` }] };
     }
-    const title = p.seo_title || `${p.title} — DIGIVAULT`;
+    const title = p.seo_title || `${p.title} — GamePlaza`;
     const desc =
       p.seo_description ||
       p.short_description ||
@@ -77,7 +77,7 @@ export const Route = createFileRoute("/product/$slug")({
         name: p.seo_h1 || p.title,
         description: desc,
         image: [p.image, ...(p.images ?? [])].filter(Boolean),
-        brand: { "@type": "Brand", name: p.seller || "DIGIVAULT" },
+        brand: { "@type": "Brand", name: p.seller || "GamePlaza" },
         offers: {
           "@type": "Offer",
           price: p.price,

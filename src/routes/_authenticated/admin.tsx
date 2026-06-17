@@ -27,7 +27,7 @@ import {
 import { Trash2, Plus, LogOut, Save, X, Download, Sparkles, Lock, Unlock, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
-  head: () => ({ meta: [{ title: "Админка — DIGIVAULT" }] }),
+  head: () => ({ meta: [{ title: "Админка — GamePlaza" }] }),
   component: AdminPage,
 });
 

@@ -16,9 +16,9 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: "DIGIVAULT — маркетплейс цифровых товаров №1" },
+      { title: "GamePlaza — маркетплейс цифровых товаров №1" },
       { name: "description", content: "Игры, подписки, ключи, карты пополнения и софт. Мгновенная доставка 24/7, гарантия возврата, более 18 000 товаров." },
-      { property: "og:title", content: "DIGIVAULT — цифровой маркетплейс нового поколения" },
+      { property: "og:title", content: "GamePlaza — цифровой маркетплейс нового поколения" },
       { property: "og:description", content: "18 000+ товаров, 480 000+ покупателей, мгновенная доставка 24/7." },
     ],
   }),
@@ -237,7 +237,7 @@ function Index() {
         <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-violet-600 via-fuchsia-600 to-cyan-500 p-8 text-white md:p-12">
           <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
           <div className="relative max-w-2xl">
-            <h3 className="text-2xl font-bold md:text-3xl">Станьте продавцом DIGIVAULT</h3>
+            <h3 className="text-2xl font-bold md:text-3xl">Станьте продавцом GamePlaza</h3>
             <p className="mt-2 text-white/80">Подключение Digiseller API, автоматическая синхронизация товаров и моментальные выплаты.</p>
             <Link to="/contact" className="mt-6 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-foreground hover:bg-white/90">Подключить магазин</Link>
           </div>
