@@ -79,6 +79,11 @@ async function fetchVerdict(digisellerId: string): Promise<AvailabilityVerdict> 
   }
 }
 
+/** Public wrapper — used by the import queue to pre-check items. */
+export async function fetchVerdictForId(digisellerId: string): Promise<AvailabilityVerdict> {
+  return fetchVerdict(digisellerId);
+}
+
 /**
  * Scrape the plati.market storefront page for the well-known "sold out" / "blocked"
  * banners. Returns null when the page can't be fetched (treat as inconclusive).
