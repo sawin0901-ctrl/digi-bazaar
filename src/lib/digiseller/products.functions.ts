@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { digisellerPost, digisellerGet, getSellerId } from "./api.server";
 import type { ProductDTO, CategoryDTO } from "@/lib/marketplace/catalog.functions";
 
 const AGENT_ID = "1459731";
@@ -86,6 +85,7 @@ function flattenCategories(nodes: DigiCategoryNode[] | undefined, out: CategoryD
 }
 
 export const listDigisellerCategories = createServerFn({ method: "GET" }).handler(async (): Promise<CategoryDTO[]> => {
+  const { digisellerPost, getSellerId } = await import("./api.server");
   const id_seller = Number(getSellerId());
   const json = await digisellerPost<CategoriesResp>("/api/categories", { id_seller, lang: "ru-RU" });
   if (json.retval !== 0) return [];
@@ -95,6 +95,7 @@ export const listDigisellerCategories = createServerFn({ method: "GET" }).handle
 export const listDigisellerProducts = createServerFn({ method: "GET" })
   .inputValidator((d: { category?: string; page?: number; rows?: number } | undefined) => d ?? {})
   .handler(async ({ data }): Promise<ProductDTO[]> => {
+    const { digisellerPost, getSellerId } = await import("./api.server");
     const id_seller = Number(getSellerId());
     let owner_id = 0;
     let categorySlug = "all";
@@ -136,6 +137,7 @@ type ProductDataResp = {
 export const getDigisellerProduct = createServerFn({ method: "GET" })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
+    const { digisellerGet } = await import("./api.server");
     const json = await digisellerGet<ProductDataResp>(`/api/products/${encodeURIComponent(data.id)}/data?currency=RUB&lang=ru-RU`);
     if (json.retval !== 0 || !json.product) return null;
     return json.product;
