@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
@@ -34,9 +34,11 @@ export const Route = createFileRoute("/catalog")({
 
 function CatalogPage() {
   const search = Route.useSearch();
-  const [cat, setCat] = useState<string>(search.category ?? "all");
+  const navigate = useNavigate({ from: "/catalog" });
+  const cat = search.category ?? "all";
+  const setCat = (next: string) =>
+    navigate({ search: { category: next === "all" ? undefined : next } });
   const [sort, setSort] = useState<string>("popular");
-  useEffect(() => { if (search.category) setCat(search.category); }, [search.category]);
   const { data: categories } = useSuspenseQuery(categoriesQO());
   const { data: products } = useSuspenseQuery(
     productsQO(cat === "all" ? undefined : { category: cat }),
@@ -54,7 +56,9 @@ function CatalogPage() {
   return (
     <Layout>
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Каталог</h1>
+        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+          {cat === "all" ? "Каталог" : (categories.find((c) => c.slug === cat)?.name ?? "Каталог")}
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">Найдено {list.length} товаров</p>
 
         <div className="mt-6 flex flex-wrap items-center gap-2">
