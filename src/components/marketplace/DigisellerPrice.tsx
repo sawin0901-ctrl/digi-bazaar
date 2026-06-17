@@ -33,6 +33,21 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
     const el = ref.current;
     if (!el) return;
 
+    // Try to invoke DigiSeller renderer on our standalone node once script is ready
+    let invokeTries = 0;
+    const invoke = () => {
+      const w = window as unknown as { DigiSeller?: (container?: HTMLElement) => void };
+      if (typeof w.DigiSeller === "function") {
+        try { w.DigiSeller(el); } catch { /* ignore */ }
+        return true;
+      }
+      return false;
+    };
+    const invokeTimer = window.setInterval(() => {
+      invokeTries += 1;
+      if (invoke() || invokeTries > 40) window.clearInterval(invokeTimer);
+    }, 250);
+
     const read = () => {
       const valEl = el.querySelector(".digiseller-price-val");
       if (!valEl) return false;
@@ -56,7 +71,10 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
       if (read()) observer.disconnect();
     });
     observer.observe(el, { childList: true, subtree: true, characterData: true });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.clearInterval(invokeTimer);
+    };
   }, [productId]);
 
   const display = price
