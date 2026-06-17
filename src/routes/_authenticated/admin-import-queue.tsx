@@ -51,7 +51,17 @@ function ImportQueuePage() {
     onSuccess: invalidate,
   });
 
-  const stats = q.data?.stats ?? { pending: 0, done: 0, failed: 0, total: 0 };
+  const stats = q.data?.stats ?? {
+    pending: 0,
+    done: 0,
+    failed: 0,
+    total: 0,
+    doneToday: 0,
+    failedToday: 0,
+    dailyCap: 200,
+    remainingToday: 200,
+    lastImportAt: null as string | null,
+  };
   const rows = q.data?.rows ?? [];
 
   return (
@@ -78,6 +88,27 @@ function ImportQueuePage() {
           <StatCard label="Импортировано" value={stats.done} tone="emerald" />
           <StatCard label="Ошибки" value={stats.failed} tone="rose" />
           <StatCard label="Всего записей" value={stats.total} tone="slate" />
+        </div>
+
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            label={`Сегодня / лимит ${stats.dailyCap}`}
+            value={stats.doneToday}
+            tone="emerald"
+          />
+          <StatCard label="Осталось сегодня" value={stats.remainingToday} tone="amber" />
+          <StatCard label="Ошибок сегодня" value={stats.failedToday} tone="rose" />
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="text-xs uppercase text-muted-foreground">Последний импорт</div>
+            <div className="mt-1 text-sm font-semibold">
+              {stats.lastImportAt
+                ? new Date(stats.lastImportAt).toLocaleString("ru-RU")
+                : "—"}
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Расписание: каждые 20 минут, до 3 товаров за тик
+            </div>
+          </div>
         </div>
 
         <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3">
