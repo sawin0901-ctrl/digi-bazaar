@@ -6,14 +6,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
-import { DigisellerWidget } from "@/components/marketplace/DigisellerWidget";
 import { productQO, productsQO, siteTextQO } from "@/lib/marketplace/queries";
 import { logClick } from "@/lib/marketplace/catalog.functions";
 import { Star, ShieldCheck, Zap, BadgeCheck, ShoppingBasket, Check, ChevronRight } from "lucide-react";
 import { useUsdRub, parseUsdAmount } from "@/hooks/use-usd-rub";
 
 const PARTNER_ID = "1459731";
-const SELLER_ID = "1459731";
 
 function withAffiliate(href: string): { href: string; isPartner: boolean } {
   try {
