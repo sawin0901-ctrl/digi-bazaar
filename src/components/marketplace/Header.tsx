@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { categoriesQO } from "@/lib/marketplace/queries";
 import { CatalogMenu } from "./CatalogMenu";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { RatesTicker } from "./RatesTicker";
 
 export function Header() {
   const [open, setOpen] = useState(false);
@@ -23,6 +24,7 @@ export function Header() {
   }, [catOpen]);
   return (
     <header ref={wrapRef} className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+      <RatesTicker />
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 text-white font-black shadow-lg shadow-fuchsia-500/30">D</div>
