@@ -49,6 +49,7 @@ export function ProductCard({ product }: { product: ProductDTO }) {
                 productId={product.digiseller_id}
                 agentId={PARTNER_ID}
                 sellerId={SELLER_ID}
+                compact
               />
             </div>
           ) : (
