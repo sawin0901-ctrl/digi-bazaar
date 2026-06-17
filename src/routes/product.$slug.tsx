@@ -158,6 +158,16 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const { slug } = Route.useParams();
+  const { knownInternalIds } = Route.useLoaderData();
+  const knownIdSet = new Set(knownInternalIds ?? []);
+  function rewriteHref(href: string): { href: string; internal: boolean; isPartner: boolean } {
+    const m = href.match(/plati\.market\/itm\/[^\s"'<>)]*?(\d{4,})/i);
+    if (m && knownIdSet.has(m[1])) {
+      return { href: `/product/digi-${m[1]}`, internal: true, isPartner: false };
+    }
+    const aff = withAffiliate(href);
+    return { ...aff, internal: false };
+  }
   const { data: product } = useSuspenseQuery(productQO(slug));
   const { data: allProducts } = useSuspenseQuery(productsQO());
   const { data: rulesText } = useSuspenseQuery(siteTextQO("buyer_rules"));
