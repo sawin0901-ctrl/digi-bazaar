@@ -147,10 +147,9 @@
 /* Digiseller widget embed — visually integrate with site design */
 .digiseller-embed {
   --ds-accent: oklch(0.65 0.22 295);
+  overflow: visible !important;
 }
-.digiseller-embed .digiseller-buy-standalone,
-.digiseller-embed [class^="digiseller-"],
-.digiseller-embed [class*=" digiseller-"] {
+.digiseller-embed .digiseller-buy-standalone {
   font-family: inherit !important;
   color: var(--color-foreground) !important;
   background: transparent !important;
@@ -177,7 +176,9 @@
 .digiseller-embed a,
 .digiseller-embed input[type="submit"],
 .digiseller-embed input[type="button"],
-.digiseller-embed button {
+.digiseller-embed button,
+.digiseller-embed [class*="digiseller"][type="submit"],
+.digiseller-embed [class*="digiseller"][type="button"] {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
