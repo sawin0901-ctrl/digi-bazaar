@@ -6,6 +6,7 @@ const PARTNER_ID = "1459731";
 const CACHE_PREFIX = "digi-price:";
 const CACHE_TTL = 1000 * 60 * 30; // 30 min
 const LOAD_TIMEOUT = 5000;
+const LOG = "[digiseller:price]";
 
 type CachedPrice = { value: string; currency: string; t: number };
 
@@ -46,6 +47,9 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
     let observer: MutationObserver | null = null;
     let invokeTimer: number | null = null;
     let timeoutTimer: number | null = null;
+    const t0 = performance.now();
+    // eslint-disable-next-line no-console
+    console.log(LOG, "mount", { productId, sellerId: SELLER_ID, hasCache: !!cached });
 
     const read = (): boolean => {
       const valEl = el.querySelector(".digiseller-price-val");
@@ -58,6 +62,8 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
       });
       const num = text.replace(/[^\d]/g, "");
       if (num && !cancelled) {
+        // eslint-disable-next-line no-console
+        console.log(LOG, "price read", { productId, num, currency, elapsedMs: Math.round(performance.now() - t0) });
         setPrice({ value: num, currency });
         writeCache(productId, num, currency);
         return true;
@@ -68,8 +74,9 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
     // Defer to idle so widget never blocks first paint.
     const start = () => {
       if (cancelled) return;
-      ensureDigisellerScript(SELLER_ID).catch(() => {
-        /* offline / blocked — keep fallback */
+      ensureDigisellerScript(SELLER_ID).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.warn(LOG, "script load failed — using fallback price", { productId, err: String(err) });
       });
 
       let invokeTries = 0;
@@ -91,6 +98,13 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
         // Stop waiting; UI already has a fallback price.
         if (observer) observer.disconnect();
         if (invokeTimer != null) window.clearInterval(invokeTimer);
+        // eslint-disable-next-line no-console
+        console.warn(LOG, "timeout — staying on fallback", {
+          productId,
+          gotPrice: !!price,
+          elapsedMs: Math.round(performance.now() - t0),
+          digiSellerGlobal: typeof (window as unknown as { DigiSeller?: unknown }).DigiSeller,
+        });
       }, LOAD_TIMEOUT);
     };
 
