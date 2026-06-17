@@ -127,9 +127,9 @@ if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
   pm2 reload "$APP_NAME" --update-env
 else
   cd "$APP_DIR"
-  # PM2 не поддерживает --env-file, загружаем .env в окружение перед стартом
   set -a; . "$APP_DIR/.env"; set +a
-  pm2 start .output/server/index.mjs --name "$APP_NAME" -i 2
+  # Запускаем Node-обёртку над собранным worker (dist/server/index.mjs)
+  pm2 start scripts/node-server.mjs --name "$APP_NAME" --interpreter node -i 2
 fi
 pm2 save
 pm2 startup systemd -u root --hp /root >/dev/null || true
