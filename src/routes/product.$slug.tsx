@@ -11,7 +11,7 @@ import { logClick } from "@/lib/marketplace/catalog.functions";
 import { Star, ShieldCheck, Zap, BadgeCheck, ShoppingBasket, Check, ChevronRight } from "lucide-react";
 import { useUsdRub, parseUsdAmount } from "@/hooks/use-usd-rub";
 
-const PARTNER_ID = "1022102";
+const PARTNER_ID = "1459731";
 
 function withAffiliate(href: string): { href: string; isPartner: boolean } {
   try {
