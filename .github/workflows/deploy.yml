@@ -54,7 +54,17 @@ jobs:
           port: ${{ secrets.SSH_PORT || '22' }}
           script: |
             set -e
-            cd /var/www/gameplaza
+            REPO_URL="https://github.com/sawin0901-ctrl/digi-bazaar.git"
+            APP_DIR="/var/www/gameplaza"
+
+            # Clone if repo doesn't exist yet
+            if [ ! -d "$APP_DIR/.git" ]; then
+              echo "==> Cloning repository..."
+              mkdir -p "$APP_DIR"
+              git clone "$REPO_URL" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
 
             echo "==> Pulling latest code..."
             git fetch origin
@@ -63,15 +73,14 @@ jobs:
             echo "==> Installing dependencies..."
             bun install --frozen-lockfile
 
-            echo "==> Building for Node.js..."
-            # Make sure preset is node-server in vite.config.ts before using this workflow
+            echo "==> Building..."
             bun run build
 
             echo "==> Restarting PM2..."
             if pm2 list | grep -q gameplaza; then
               pm2 reload gameplaza --update-env
             else
-              pm2 start .output/server/index.mjs --name gameplaza --env-file .env -i 2
+              pm2 start dist/server/index.mjs --name gameplaza --env-file .env -i 2
               pm2 save
             fi
 
