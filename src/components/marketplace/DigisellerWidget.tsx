@@ -1,70 +1,80 @@
 import { useEffect, useRef } from "react";
 
-const SELLER_ID = "1022102";
+const SCRIPT_ID = "digiseller-js";
+const CSS_ID = "digiseller-css";
 
-function ensureDigisellerLoaded() {
+function ensureScriptLoaded(sellerId: string) {
   if (typeof document === "undefined") return;
-  const head = document.head;
 
-  if (!document.getElementById("digiseller-css")) {
+  // CSS
+  if (!document.getElementById(CSS_ID)) {
     const link = document.createElement("link");
-    link.id = "digiseller-css";
-    link.rel = "stylesheet";
     link.type = "text/css";
-    link.href = `//shop.digiseller.com/xml/store2_css.asp?seller_id=${SELLER_ID}`;
+    link.rel = "stylesheet";
+    link.id = CSS_ID;
+    link.href = `//shop.digiseller.com/xml/store2_css.asp?seller_id=${sellerId}`;
+    const head = document.getElementsByTagName("head")[0] || document.documentElement;
     head.appendChild(link);
   }
 
-  if (!document.getElementById("digiseller-js")) {
-    const match = (name: string) =>
-      document.cookie.match(new RegExp("(?:^|; )digiseller-" + name + "=([^;]*)"));
-    const lang = match("lang");
-    const cart = match("cart_uid");
-    const qs =
-      (lang ? `&lang=${lang[1]}` : "") + (cart ? `&cart_uid=${cart[1]}` : "");
+  // JS
+  if (!document.getElementById(SCRIPT_ID)) {
     const script = document.createElement("script");
-    script.id = "digiseller-js";
     script.async = true;
-    script.src = `//digiseller.com/store2/digiseller-api.js.asp?seller_id=${SELLER_ID}${qs}`;
+    script.id = SCRIPT_ID;
+    script.src = `//digiseller.com/store2/digiseller-api.js.asp?seller_id=${sellerId}`;
+    const head = document.getElementsByTagName("head")[0] || document.documentElement;
     head.appendChild(script);
   }
 }
 
-type Props = {
-  productId: string | number;
-  showImage?: boolean;
-  imageSize?: number;
+interface DigisellerWidgetProps {
+  productId: string;
+  agentId: string;
+  sellerId: string;
+  imgSize?: number;
   showName?: boolean;
   showPrice?: boolean;
-  className?: string;
-};
+}
 
 export function DigisellerWidget({
   productId,
-  showImage = true,
-  imageSize = 180,
+  agentId,
+  sellerId,
+  imgSize = 180,
   showName = true,
   showPrice = true,
-  className,
-}: Props) {
-  const ref = useRef<HTMLDivElement>(null);
+}: DigisellerWidgetProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    ensureDigisellerLoaded();
-  }, [productId]);
+    ensureScriptLoaded(sellerId);
+  }, [sellerId]);
+
+  useEffect(() => {
+    // Try to re-initialize if the Digiseller API is already loaded
+    const w = window as unknown as Record<string, unknown>;
+    if (typeof w.DigiSeller === "function" && containerRef.current) {
+      try {
+        (w.DigiSeller as (container?: HTMLElement) => void)(containerRef.current);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [productId, agentId]);
 
   return (
-    <div
-      ref={ref}
-      className={`digiseller-buy-standalone ${className ?? ""}`}
-      data-id={String(productId)}
-      data-ai={SELLER_ID}
-      data-img={showImage ? 1 : 0}
-      data-img-size={imageSize}
-      data-name={showName ? 1 : 0}
-      data-price={showPrice ? 1 : 0}
-      data-no-price={showPrice ? 0 : 1}
-      style={{ display: "inline-block" }}
-    />
+    <div ref={containerRef} style={{ display: "inline-block" }}>
+      <div
+        className="digiseller-buy-standalone"
+        data-id={productId}
+        data-ai={agentId}
+        data-img="1"
+        data-img-size={imgSize}
+        data-name={showName ? "1" : "0"}
+        data-price={showPrice ? "1" : "0"}
+        data-no-price="0"
+      />
+    </div>
   );
 }
