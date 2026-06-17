@@ -13,6 +13,7 @@ REPO_URL="${REPO_URL:-https://github.com/sawin0901-ctrl/digi-bazaar.git}"
 APP_DIR="${APP_DIR:-/var/www/gameplaza}"
 APP_NAME="${APP_NAME:-gameplaza}"
 PORT="${PORT:-3000}"
+PM2_INSTANCES="${PM2_INSTANCES:-1}"
 
 # Supabase (Lovable Cloud) — публичные ключи, можно зашить
 SUPABASE_URL_DEFAULT="https://ckgikatsuqgczqugpxoc.supabase.co"
@@ -94,6 +95,7 @@ if [[ ! -f "$APP_DIR/.env" ]]; then
   cat > "$APP_DIR/.env" <<EOF
 NODE_ENV=production
 PORT=${PORT}
+HOST=127.0.0.1
 PUBLIC_SITE_URL=https://${DOMAIN}
 
 VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
@@ -122,17 +124,29 @@ bun run build
 
 ### ─── 8. PM2 ──────────────────────────────────────────────────────────────
 log "Запуск приложения через PM2"
+set -a; . "$APP_DIR/.env"; set +a
 if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
-  set -a; . "$APP_DIR/.env"; set +a
-  pm2 reload "$APP_NAME" --update-env
-else
-  cd "$APP_DIR"
-  set -a; . "$APP_DIR/.env"; set +a
-  # Запускаем Node-обёртку над собранным worker (dist/server/index.mjs)
-  pm2 start scripts/node-server.mjs --name "$APP_NAME" --interpreter node -i 2
+  pm2 delete "$APP_NAME" >/dev/null || true
 fi
+cd "$APP_DIR"
+pm2 start scripts/node-server.mjs --name "$APP_NAME" --interpreter node -i "$PM2_INSTANCES" --update-env
 pm2 save
 pm2 startup systemd -u root --hp /root >/dev/null || true
+
+log "Проверка приложения на 127.0.0.1:${PORT}"
+for i in {1..30}; do
+  if curl -fsS "http://127.0.0.1:${PORT}" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+if ! curl -fsS "http://127.0.0.1:${PORT}" >/dev/null 2>&1; then
+  warn "Приложение не ответило на 127.0.0.1:${PORT}. Последние логи:"
+  pm2 logs "$APP_NAME" --lines 80 --nostream || true
+  exit 1
+else
+  log "Приложение отвечает на 127.0.0.1:${PORT}"
+fi
 
 ### ─── 9. Nginx ────────────────────────────────────────────────────────────
 log "Настройка Nginx для ${DOMAIN}"

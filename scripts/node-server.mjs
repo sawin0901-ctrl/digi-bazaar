@@ -1,4 +1,4 @@
-// Node-обёртка над собранным Cloudflare Worker (dist/server/index.mjs).
+// Node-обёртка над собранным сервером TanStack Start.
 // Запускает HTTP сервер, отдаёт статику из dist/client, остальное проксирует в worker.fetch().
 import http from "node:http";
 import { readFile, stat } from "node:fs/promises";
@@ -10,18 +10,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const DIST = path.join(ROOT, "dist");
 const CLIENT_DIR = path.join(DIST, "client");
-const SERVER_ENTRY = path.join(DIST, "server", "index.mjs");
+const SERVER_ENTRY_CANDIDATES = [
+  path.join(DIST, "server", "index.mjs"),
+  path.join(DIST, "server", "server.js"),
+];
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
 
-if (!existsSync(SERVER_ENTRY)) {
-  console.error(`[node-server] Не найден ${SERVER_ENTRY}. Сначала выполните: bun run build`);
+const SERVER_ENTRY = SERVER_ENTRY_CANDIDATES.find((candidate) => existsSync(candidate));
+
+if (!SERVER_ENTRY) {
+  console.error(`[node-server] Не найден серверный файл сборки. Проверял: ${SERVER_ENTRY_CANDIDATES.join(", ")}. Сначала выполните: bun run build`);
   process.exit(1);
 }
 
-const worker = (await import(pathToFileURL(SERVER_ENTRY).href)).default;
+const serverModule = await import(pathToFileURL(SERVER_ENTRY).href);
+const worker = serverModule.default ?? serverModule;
 if (!worker || typeof worker.fetch !== "function") {
-  console.error("[node-server] dist/server/index.mjs не экспортирует { fetch }");
+  console.error(`[node-server] ${SERVER_ENTRY} не экспортирует fetch()`);
   process.exit(1);
 }
 
@@ -118,5 +124,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
+  console.log(`[node-server] entry=${SERVER_ENTRY}`);
   console.log(`[node-server] listening on http://${HOST}:${PORT}`);
 });
