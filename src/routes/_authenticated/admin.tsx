@@ -12,10 +12,11 @@ import {
   adminListCategories,
   adminGetSetting,
   adminSetSetting,
+  adminImportDigisellerProduct,
   type AdminProduct,
   type ProductInput,
 } from "@/lib/admin/admin.functions";
-import { Trash2, Plus, LogOut, Save, X } from "lucide-react";
+import { Trash2, Plus, LogOut, Save, X, Download } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Админка — DIGIVAULT" }] }),
@@ -32,6 +33,7 @@ function AdminPage() {
   const listCats = useServerFn(adminListCategories);
   const getSetting = useServerFn(adminGetSetting);
   const setSetting = useServerFn(adminSetSetting);
+  const importDigi = useServerFn(adminImportDigisellerProduct);
 
   const admin = useQuery({ queryKey: ["isAdmin"], queryFn: () => checkFn() });
   const products = useQuery({
@@ -68,6 +70,17 @@ function AdminPage() {
     mutationFn: (value: string) => setSetting({ data: { key: "partner_ai", value } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "partner_ai"] }),
   });
+  const importMut = useMutation({
+    mutationFn: (vars: { digisellerId: string; categorySlug?: string | null }) =>
+      importDigi({ data: vars }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "products"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["admin", "categories"] });
+    },
+  });
+  const [importId, setImportId] = useState("");
+  const [importCat, setImportCat] = useState("");
 
   const handleSignOut = async () => {
     await qc.cancelQueries();
@@ -126,6 +139,54 @@ function AdminPage() {
             />
             {aiMut.isPending && <span className="text-xs text-muted-foreground">сохранение…</span>}
             {aiMut.isSuccess && <span className="text-xs text-emerald-500">сохранено</span>}
+          </div>
+        </div>
+
+        {/* Import a single Digiseller product */}
+        <div className="mt-4 rounded-2xl border border-border bg-card p-4">
+          <label className="text-sm font-semibold">Импорт товара с Digiseller по ID</label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Например, <code className="rounded bg-muted px-1">3300218</code>. Описание, цена и
+            картинка возьмутся с plati.market; партнёрские ссылки соберутся автоматически.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              value={importId}
+              onChange={(e) => setImportId(e.target.value.replace(/\D+/g, ""))}
+              placeholder="ID товара"
+              className="w-40 rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            />
+            <select
+              value={importCat}
+              onChange={(e) => setImportCat(e.target.value)}
+              className="rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">Категория: Импорт (по умолчанию)</option>
+              {cats.data?.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => {
+                if (!importId) return;
+                importMut.mutate({ digisellerId: importId, categorySlug: importCat || null });
+              }}
+              disabled={!importId || importMut.isPending}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/30 disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" />
+              {importMut.isPending ? "Импорт…" : "Импортировать"}
+            </button>
+            {importMut.isSuccess && (
+              <span className="text-xs text-emerald-500">
+                {importMut.data.created ? "добавлен" : "обновлён"}: /{importMut.data.slug}
+              </span>
+            )}
+            {importMut.error && (
+              <span className="text-xs text-rose-500">{importMut.error.message}</span>
+            )}
           </div>
         </div>
 
