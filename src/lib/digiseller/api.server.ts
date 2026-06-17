@@ -32,28 +32,39 @@ export async function getDigisellerToken(): Promise<string> {
   return json.token;
 }
 
-export async function digisellerPost<T>(path: string, body: Record<string, unknown>, withToken = false): Promise<T> {
-  let url = `${BASE}${path}`;
+function withTokenQuery(path: string, token: string) {
+  return path + (path.includes("?") ? "&" : "?") + `token=${token}`;
+}
+
+async function doFetch<T>(method: "GET" | "POST", path: string, body: Record<string, unknown> | undefined, withToken: boolean, retry = true): Promise<T> {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (body) headers["Content-Type"] = "application/json";
+  let finalPath = path;
   if (withToken) {
     const token = await getDigisellerToken();
-    url += (path.includes("?") ? "&" : "?") + `token=${token}`;
+    finalPath = withTokenQuery(path, token);
+    headers["Authorization"] = `Bearer ${token}`;
   }
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(body),
+  const res = await fetch(`${BASE}${finalPath}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new Error(`POST ${path} ${res.status}`);
+  if (!res.ok) {
+    if ((res.status === 401 || res.status === 403) && withToken && retry) {
+      cached = null;
+      return doFetch<T>(method, path, body, withToken, false);
+    }
+    const text = await res.text().catch(() => "");
+    throw new Error(`${method} ${path} ${res.status} ${text.slice(0, 200)}`);
+  }
   return (await res.json()) as T;
 }
 
+export async function digisellerPost<T>(path: string, body: Record<string, unknown>, withToken = false): Promise<T> {
+  return doFetch<T>("POST", path, body, withToken);
+}
+
 export async function digisellerGet<T>(path: string, withToken = false): Promise<T> {
-  let url = `${BASE}${path}`;
-  if (withToken) {
-    const token = await getDigisellerToken();
-    url += (path.includes("?") ? "&" : "?") + `token=${token}`;
-  }
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`GET ${path} ${res.status}`);
-  return (await res.json()) as T;
+  return doFetch<T>("GET", path, undefined, withToken);
 }
