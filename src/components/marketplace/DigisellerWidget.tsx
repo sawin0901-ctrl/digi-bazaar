@@ -30,12 +30,14 @@ interface DigisellerWidgetProps {
   productId: string;
   agentId: string;
   sellerId: string;
+  compact?: boolean;
 }
 
 export function DigisellerWidget({
   productId,
   agentId,
   sellerId,
+  compact = false,
 }: DigisellerWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -55,10 +57,12 @@ export function DigisellerWidget({
     }
   }, [productId, agentId]);
 
-  const html = `<div style="display: inline-block;" class="digiseller-buy-standalone" data-id="${productId}" data-ai="${agentId}" data-img="0" data-img-size="" data-name="1" data-price="1" data-no-price="0"></div>`;
+  const nameAttr = compact ? "0" : "1";
+  const priceAttr = compact ? "0" : "1";
+  const html = `<div style="display: inline-block;" class="digiseller-buy-standalone" data-id="${productId}" data-ai="${agentId}" data-img="0" data-img-size="" data-name="${nameAttr}" data-price="${priceAttr}" data-no-price="0"></div>`;
 
   return (
-    <div ref={containerRef} className="w-full">
+    <div ref={containerRef} className="digiseller-embed w-full">
       <div dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );

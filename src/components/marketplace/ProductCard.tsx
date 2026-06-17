@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 import type { ProductDTO } from "@/lib/marketplace/catalog.functions";
-import { DigisellerWidget } from "./DigisellerWidget";
 
 const badgeStyle: Record<string, string> = {
   HOT: "bg-gradient-to-r from-orange-500 to-rose-500 text-white",
@@ -9,9 +8,6 @@ const badgeStyle: Record<string, string> = {
   "-50%": "bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white",
   "ТОП": "bg-gradient-to-r from-amber-400 to-orange-500 text-white",
 };
-
-const PARTNER_ID = "1459731";
-const SELLER_ID = "1459731";
 
 export function ProductCard({ product }: { product: ProductDTO }) {
   const cls = "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:border-primary/50 hover:shadow-2xl hover:shadow-fuchsia-500/10";
@@ -43,17 +39,13 @@ export function ProductCard({ product }: { product: ProductDTO }) {
             <div className="text-xl font-bold tracking-tight">{product.price.toLocaleString("ru-RU")} ₽</div>
             {product.old_price && <div className="text-xs text-muted-foreground line-through">{product.old_price.toLocaleString("ru-RU")} ₽</div>}
           </div>
-          {product.digiseller_id ? (
-            <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-              <DigisellerWidget
-                productId={product.digiseller_id}
-                agentId={PARTNER_ID}
-                sellerId={SELLER_ID}
-              />
-            </div>
-          ) : (
-            <span className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition group-hover:bg-primary/90">Купить</span>
-          )}
+          <Link
+            to="/product/$slug"
+            params={{ slug: product.slug }}
+            className="flex-shrink-0 rounded-lg bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-fuchsia-500/20 transition hover:opacity-90"
+          >
+            Купить
+          </Link>
         </div>
       </div>
     </div>
