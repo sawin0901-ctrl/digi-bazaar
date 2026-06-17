@@ -267,19 +267,7 @@ function ProductPage() {
                 </div>
               )}
 
-              {product.digiseller_id ? (
-                <div className="mt-5">
-                  <DigisellerWidget
-                    productId={product.digiseller_id}
-                    agentId={PARTNER_ID}
-                    sellerId={SELLER_ID}
-                    imgSize={180}
-                    showName
-                    showPrice
-                  />
-                </div>
-              ) : (
-                <div className="mt-5 flex items-stretch gap-2">
+              <div className="mt-5 flex items-stretch gap-2">
                   <button
                     type="button"
                     aria-label="В корзину"
@@ -302,8 +290,7 @@ function ProductPage() {
                   >
                     Купить сейчас
                   </a>
-                </div>
-              )}
+              </div>
 
               <p className="mt-3 text-xs text-muted-foreground">
                 Нажимая на кнопку, вы соглашаетесь с{" "}
