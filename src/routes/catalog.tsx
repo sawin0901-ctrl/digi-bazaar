@@ -11,7 +11,6 @@ export const Route = createFileRoute("/catalog")({
   }),
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(digisellerCategoriesQO()),
       context.queryClient.ensureQueryData(categoriesQO()),
       context.queryClient.ensureQueryData(digisellerProductsQO()),
     ]);
