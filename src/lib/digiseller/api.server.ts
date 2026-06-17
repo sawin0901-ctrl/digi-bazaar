@@ -8,7 +8,7 @@ let cached: TokenCache | null = null;
 
 export function getSellerId(): string {
   const id = process.env.DIGISELLER_SELLER_ID;
-  if (id && /^\d+$/.test(id.trim())) return id.trim();
+  if (id && /^\d+$/.test(id.trim()) && Number(id) > 0) return id.trim();
   return DEFAULT_SELLER_ID;
 }
 
