@@ -19,6 +19,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiPublicHooksProcessImportQueueRouteImport } from './routes/api/public/hooks/process-import-queue'
 import { Route as ApiPublicHooksDigisellerSyncRouteImport } from './routes/api/public/hooks/digiseller-sync'
 import { Route as ApiPublicHooksDigisellerImportRouteImport } from './routes/api/public/hooks/digiseller-import'
 
@@ -71,6 +72,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicHooksProcessImportQueueRoute =
+  ApiPublicHooksProcessImportQueueRouteImport.update({
+    id: '/api/public/hooks/process-import-queue',
+    path: '/api/public/hooks/process-import-queue',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksDigisellerSyncRoute =
   ApiPublicHooksDigisellerSyncRouteImport.update({
     id: '/api/public/hooks/digiseller-sync',
@@ -96,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
+  '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -109,6 +117,7 @@ export interface FileRoutesByTo {
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
+  '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -124,6 +133,7 @@ export interface FileRoutesById {
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
+  '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
+    | '/api/public/hooks/process-import-queue'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
+    | '/api/public/hooks/process-import-queue'
   id:
     | '__root__'
     | '/'
@@ -166,6 +178,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
+    | '/api/public/hooks/process-import-queue'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -180,6 +193,7 @@ export interface RootRouteChildren {
   ProductSlugRoute: typeof ProductSlugRoute
   ApiPublicHooksDigisellerImportRoute: typeof ApiPublicHooksDigisellerImportRoute
   ApiPublicHooksDigisellerSyncRoute: typeof ApiPublicHooksDigisellerSyncRoute
+  ApiPublicHooksProcessImportQueueRoute: typeof ApiPublicHooksProcessImportQueueRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -254,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/process-import-queue': {
+      id: '/api/public/hooks/process-import-queue'
+      path: '/api/public/hooks/process-import-queue'
+      fullPath: '/api/public/hooks/process-import-queue'
+      preLoaderRoute: typeof ApiPublicHooksProcessImportQueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/digiseller-sync': {
       id: '/api/public/hooks/digiseller-sync'
       path: '/api/public/hooks/digiseller-sync'
@@ -294,6 +315,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductSlugRoute: ProductSlugRoute,
   ApiPublicHooksDigisellerImportRoute: ApiPublicHooksDigisellerImportRoute,
   ApiPublicHooksDigisellerSyncRoute: ApiPublicHooksDigisellerSyncRoute,
+  ApiPublicHooksProcessImportQueueRoute: ApiPublicHooksProcessImportQueueRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
