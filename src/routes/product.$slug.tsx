@@ -205,6 +205,12 @@ function ProductPage() {
   };
 
   const cleanDescription = (product.description ?? "").replace(/!?\[[^\]]*\]\([^)]*\)/g, "").trim();
+  const imageMetaByUrl = new Map<string, { alt: string; title: string; caption: string }>();
+  for (const m of product.image_meta ?? []) imageMetaByUrl.set(m.url, m);
+  const altFor = (src: string, fallback: string) =>
+    imageMetaByUrl.get(src)?.alt || fallback;
+  const titleFor = (src: string, fallback: string) =>
+    imageMetaByUrl.get(src)?.title || fallback;
 
   const selectedVariant = product.variants.find((v) => v.label === variant) ?? null;
   const canBuy = (!hasVariants || !!variant) && (!hasVariants || agreed);
