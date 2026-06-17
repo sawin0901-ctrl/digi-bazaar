@@ -166,7 +166,7 @@ export function ensureDigisellerScript(sellerId: string): Promise<void> {
   return p;
 }
 
-export function invokeDigiseller(container: HTMLElement, _options?: { silent?: boolean }): boolean {
+export function invokeDigiseller(container: HTMLElement, options?: { silent?: boolean }): boolean {
   if (typeof window === "undefined") return false;
   const digi = (window as DigiSellerWin).DigiSeller;
   if (!digi) return false;
@@ -195,7 +195,7 @@ export function invokeDigiseller(container: HTMLElement, _options?: { silent?: b
     }
     return invoked;
   } catch (err) {
-    error("DigiSeller(container) threw", { err: String(err) });
+    if (!options?.silent) error("DigiSeller(container) threw", { err: String(err) });
     return false;
   }
 }
