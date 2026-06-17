@@ -333,6 +333,12 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       if (pd.name) patch.title = pd.name;
       if (newPrice > 0) patch.price = newPrice;
       if (typeof pd.cnt_sell === "number") patch.sales = pd.cnt_sell;
+      const info = sanitizeDigisellerHtml(pd.info ?? "");
+      const addInfo = sanitizeDigisellerHtml(pd.add_info ?? "");
+      let desc = "";
+      if (info) desc += info;
+      if (addInfo) desc += (desc ? "\n\n" : "") + "Инструкция и правила покупки\n\n" + addInfo;
+      if (desc) patch.description = desc;
       const { error } = await supabaseAdmin.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
     } catch (e) {
