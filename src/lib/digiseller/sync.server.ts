@@ -114,6 +114,77 @@ function extractVideos(pd: NonNullable<ProductDataResp["product"]>): string[] {
 function productUrl(id: number): string {
   return `https://plati.market/itm/${id}?ai=${AGENT_ID}`;
 }
+
+/** Extract numeric plati.market itm IDs from arbitrary text/HTML. */
+export function extractPlatiItemIds(text: string | null | undefined): string[] {
+  if (!text) return [];
+  const out = new Set<string>();
+  const re = /plati\.market\/itm\/[^\s"'<>)]*?(\d{4,})/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) out.add(m[1]);
+  return [...out];
+}
+
+/** Enqueue newly seen plati.market item IDs for background auto-import. */
+async function enqueuePlatiIds(ids: string[], sourceProductId: string | null) {
+  if (ids.length === 0) return;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  // Skip ids that already exist as products
+  const { data: existing } = await supabaseAdmin
+    .from("products")
+    .select("digiseller_id")
+    .in("digiseller_id", ids);
+  const have = new Set((existing ?? []).map((r) => r.digiseller_id));
+  const fresh = ids.filter((id) => !have.has(id));
+  if (fresh.length === 0) return;
+  await supabaseAdmin
+    .from("product_import_queue")
+    .upsert(
+      fresh.map((id) => ({
+        digiseller_id: id,
+        source_product_id: sourceProductId,
+        status: "pending",
+      })),
+      { onConflict: "digiseller_id", ignoreDuplicates: true },
+    );
+}
+
+/** Process one queued plati.market item — invoked by hourly cron. */
+export async function processOneFromImportQueue(): Promise<
+  { processed: false } | { processed: true; digiseller_id: string; ok: boolean; error?: string }
+> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: row } = await supabaseAdmin
+    .from("product_import_queue")
+    .select("id, digiseller_id, attempts")
+    .eq("status", "pending")
+    .lt("attempts", 5)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!row) return { processed: false };
+  try {
+    await importDigisellerProductById(row.digiseller_id, null);
+    await supabaseAdmin
+      .from("product_import_queue")
+      .update({ status: "done", processed_at: new Date().toISOString(), attempts: row.attempts + 1 })
+      .eq("id", row.id);
+    return { processed: true, digiseller_id: row.digiseller_id, ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const nextAttempts = row.attempts + 1;
+    await supabaseAdmin
+      .from("product_import_queue")
+      .update({
+        status: nextAttempts >= 5 ? "failed" : "pending",
+        attempts: nextAttempts,
+        last_error: msg.slice(0, 500),
+      })
+      .eq("id", row.id);
+    return { processed: true, digiseller_id: row.digiseller_id, ok: false, error: msg };
+  }
+}
+
 function productImage(row: Row): string {
   return row.url_image || row.image || `https://graph.digiseller.ru/img.ashx?id_d=${row.id_goods}&w=400&h=300&crop=true`;
 }
@@ -390,6 +461,13 @@ export async function importDigisellerProductById(
       const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
       await generateAndSaveSeoForProduct(row.id);
     }
+    // Enqueue any plati.market links found in description for auto-import
+    try {
+      const linkedIds = extractPlatiItemIds(description).filter((x) => x !== digisellerId);
+      await enqueuePlatiIds(linkedIds, row?.id ?? null);
+    } catch (e) {
+      console.error("[sync] enqueue plati links failed", e);
+    }
   } catch (e) {
     console.error("[sync] seo gen after import failed", e);
   }
@@ -454,6 +532,13 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       if (pd.image) patch.image = pd.image;
       const { error } = await supabaseAdmin.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
+      // Enqueue plati links from updated description
+      try {
+        const linkedIds = extractPlatiItemIds(patch.description ?? "").filter((x) => x !== p.digiseller_id);
+        await enqueuePlatiIds(linkedIds, p.id);
+      } catch (e) {
+        console.error("[sync] enqueue plati links failed", e);
+      }
       // SEO regen if not locked
       try {
         const { data: cur } = await supabaseAdmin

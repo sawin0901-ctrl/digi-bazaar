@@ -8,7 +8,7 @@ import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { DigisellerWidget } from "@/components/marketplace/DigisellerWidget";
 import { productQO, productsQO, siteTextQO } from "@/lib/marketplace/queries";
-import { logClick } from "@/lib/marketplace/catalog.functions";
+import { logClick, getKnownDigisellerIds } from "@/lib/marketplace/catalog.functions";
 import { Star, ShieldCheck, Zap, BadgeCheck, ShoppingBasket, Check, ChevronRight } from "lucide-react";
 import { useUsdRub, parseUsdAmount } from "@/hooks/use-usd-rub";
 
@@ -39,7 +39,22 @@ export const Route = createFileRoute("/product/$slug")({
       context.queryClient.ensureQueryData(siteTextQO("buyer_rules")),
       context.queryClient.ensureQueryData(siteTextQO("warranty")),
     ]);
-    return { product };
+    // Resolve which plati.market links inside the description point to products
+    // we already host locally — we'll rewrite those to internal links.
+    const ids = new Set<string>();
+    const re = /plati\.market\/itm\/[^\s"'<>)]*?(\d{4,})/gi;
+    let m: RegExpExecArray | null;
+    const text = product.description ?? "";
+    while ((m = re.exec(text)) !== null) ids.add(m[1]);
+    let knownInternalIds: string[] = [];
+    if (ids.size > 0) {
+      try {
+        knownInternalIds = await getKnownDigisellerIds({ data: { ids: [...ids] } });
+      } catch {
+        knownInternalIds = [];
+      }
+    }
+    return { product, knownInternalIds };
   },
   head: ({ params, loaderData }) => {
     const p = loaderData?.product;
@@ -143,6 +158,16 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const { slug } = Route.useParams();
+  const { knownInternalIds } = Route.useLoaderData();
+  const knownIdSet = new Set(knownInternalIds ?? []);
+  function rewriteHref(href: string): { href: string; internal: boolean; isPartner: boolean } {
+    const m = href.match(/plati\.market\/itm\/[^\s"'<>)]*?(\d{4,})/i);
+    if (m && knownIdSet.has(m[1])) {
+      return { href: `/product/digi-${m[1]}`, internal: true, isPartner: false };
+    }
+    const aff = withAffiliate(href);
+    return { ...aff, internal: false };
+  }
   const { data: product } = useSuspenseQuery(productQO(slug));
   const { data: allProducts } = useSuspenseQuery(productsQO());
   const { data: rulesText } = useSuspenseQuery(siteTextQO("buyer_rules"));
@@ -353,7 +378,19 @@ function ProductPage() {
                         img: () => null,
                         a: ({ href, children, ...rest }) => {
                           const raw = typeof href === "string" ? href : "";
-                          const { href: finalHref, isPartner } = withAffiliate(raw);
+                          const { href: finalHref, isPartner, internal } = rewriteHref(raw);
+                          if (internal) {
+                            const slugMatch = finalHref.replace(/^\/product\//, "");
+                            return (
+                              <Link
+                                to="/product/$slug"
+                                params={{ slug: slugMatch }}
+                                className="text-primary underline"
+                              >
+                                {children}
+                              </Link>
+                            );
+                          }
                           return (
                             <a
                               {...rest}
