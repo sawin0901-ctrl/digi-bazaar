@@ -380,8 +380,13 @@ function ProductPage() {
                           const raw = typeof href === "string" ? href : "";
                           const { href: finalHref, isPartner, internal } = rewriteHref(raw);
                           if (internal) {
+                            const slugMatch = finalHref.replace(/^\/product\//, "");
                             return (
-                              <Link to={finalHref} className="text-primary underline">
+                              <Link
+                                to="/product/$slug"
+                                params={{ slug: slugMatch }}
+                                className="text-primary underline"
+                              >
                                 {children}
                               </Link>
                             );
