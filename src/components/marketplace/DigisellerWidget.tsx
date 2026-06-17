@@ -35,6 +35,7 @@ interface DigisellerWidgetProps {
   imgSize?: number;
   showName?: boolean;
   showPrice?: boolean;
+  showImage?: boolean;
 }
 
 export function DigisellerWidget({
@@ -44,6 +45,7 @@ export function DigisellerWidget({
   imgSize = 180,
   showName = true,
   showPrice = true,
+  showImage = true,
 }: DigisellerWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +72,7 @@ export function DigisellerWidget({
         className="digiseller-buy-standalone"
         data-id={productId}
         data-ai={agentId}
-        data-img="1"
+        data-img={showImage ? "1" : "0"}
         data-img-size={imgSize}
         data-name={showName ? "1" : "0"}
         data-price={showPrice ? "1" : "0"}

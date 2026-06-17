@@ -240,6 +240,21 @@ function ProductPage() {
                 </label>
               </div>
             )}
+
+            {product.digiseller_id && (
+              <div className="mt-7 border-t border-border pt-6">
+                <div className="digiseller-embed digiseller-inline">
+                  <DigisellerWidget
+                    productId={String(product.digiseller_id)}
+                    agentId={PARTNER_ID}
+                    sellerId={SELLER_ID}
+                    showName={false}
+                    showPrice={false}
+                    showImage={false}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <aside className="lg:sticky lg:top-24 lg:self-start">
@@ -267,8 +282,7 @@ function ProductPage() {
                 </div>
               )}
 
-              {!product.digiseller_id && (
-                <div className="mt-5 flex items-stretch gap-2">
+              <div className="mt-5 flex items-stretch gap-2">
                     <button
                       type="button"
                       aria-label="В корзину"
@@ -291,8 +305,7 @@ function ProductPage() {
                     >
                       Купить сейчас
                     </a>
-                </div>
-              )}
+              </div>
 
               <p className="mt-3 text-xs text-muted-foreground">
                 Нажимая на кнопку, вы соглашаетесь с{" "}
@@ -317,29 +330,6 @@ function ProductPage() {
                 </div>
                 <div className="mt-1 font-semibold">{product.seller}</div>
               </div>
-
-              {product.digiseller_id && (
-                <div className="mt-5 rounded-2xl border border-border bg-background/60 p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Оплата через Digiseller
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
-                      <ShieldCheck className="h-3 w-3" /> Гарант
-                    </span>
-                  </div>
-                  <div className="digiseller-embed">
-                    <DigisellerWidget
-                      productId={String(product.digiseller_id)}
-                      agentId={PARTNER_ID}
-                      sellerId={SELLER_ID}
-                      imgSize={120}
-                      showName={false}
-                      showPrice={false}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </aside>
         </div>
