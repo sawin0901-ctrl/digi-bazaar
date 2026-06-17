@@ -241,3 +241,16 @@ export const adminSetSetting = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const adminImportDigisellerProduct = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { digisellerId: string; categorySlug?: string | null }) => d)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const id = data.digisellerId.trim();
+    if (!/^\d+$/.test(id)) throw new Error("Некорректный ID товара");
+
+    const { importDigisellerProductById } = await import("@/lib/digiseller/sync.server");
+    const result = await importDigisellerProductById(id, data.categorySlug ?? null);
+    return result;
+  });

@@ -192,6 +192,77 @@ export async function runDailyImport(): Promise<{ imported: number; skipped: num
   return { imported, skipped: allRows.length - chosen.length, category: target.name };
 }
 
+export async function importDigisellerProductById(
+  digisellerId: string,
+  categorySlug: string | null = null,
+): Promise<{ ok: true; slug: string; created: boolean }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const json = await digisellerGet<ProductDataResp>(
+    `/api/products/${encodeURIComponent(digisellerId)}/data?currency=RUR&lang=ru-RU`,
+  );
+  if (json.retval !== 0 || !json.product) {
+    throw new Error(`Digiseller вернул ошибку retval=${json.retval} ${json.retdesc ?? ""}`);
+  }
+  const pd = json.product;
+  const title = pd.name ?? `Товар ${digisellerId}`;
+  const price = Math.round(Number(pd.prices_unit?.price_rub ?? pd.price?.price ?? 0));
+  const image =
+    pd.image ||
+    `https://graph.digiseller.ru/img.ashx?id_d=${digisellerId}&w=400&h=300&crop=true`;
+  const slug = `digi-${digisellerId}`;
+
+  // Ensure category exists
+  const catSlug = categorySlug && categorySlug.trim() ? categorySlug.trim() : "cat-imported";
+  await supabaseAdmin
+    .from("categories")
+    .upsert(
+      [{ slug: catSlug, name: catSlug === "cat-imported" ? "Импорт" : catSlug, is_active: true }],
+      { onConflict: "slug" },
+    );
+
+  // Description: prefer Digiseller's own info/add_info, else generate via Lovable AI
+  let description = (pd.info ?? "").trim();
+  if (!description) description = (pd.add_info ?? "").trim();
+  if (!description) description = await generateUniqueDescription(title, catSlug);
+
+  const { data: existing } = await supabaseAdmin
+    .from("products")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  const inStock = pd.in_stock === undefined ? true : Boolean(pd.in_stock);
+
+  const { error } = await supabaseAdmin.from("products").upsert(
+    {
+      slug,
+      title,
+      category_slug: catSlug,
+      seller: "plati.market",
+      seller_rating: 5,
+      price,
+      old_price: null,
+      rating: 5,
+      reviews: 0,
+      sales: pd.cnt_sell ?? 0,
+      image,
+      badge: null,
+      description,
+      details_url: productUrl(Number(digisellerId)),
+      buy_url: productUrl(Number(digisellerId)),
+      digiseller_id: digisellerId,
+      is_active: true,
+      in_stock: inStock,
+      last_synced_at: new Date().toISOString(),
+    },
+    { onConflict: "slug" },
+  );
+  if (error) throw new Error(error.message);
+
+  return { ok: true, slug, created: !existing };
+}
+
 export async function runDailySync(limit = 100): Promise<{ updated: number; deactivated: number; checked: number }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
