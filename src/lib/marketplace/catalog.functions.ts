@@ -36,6 +36,7 @@ export type ProductDTO = {
   buy_url: string | null;
   digiseller_id: string | null;
   variant_label: string | null;
+  external_url?: string | null;
 };
 
 export type VariantDTO = {
