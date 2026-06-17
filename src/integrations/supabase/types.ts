@@ -77,6 +77,44 @@ export type Database = {
         }
         Relationships: []
       }
+      product_availability_log: {
+        Row: {
+          created_at: string
+          digiseller_id: string | null
+          event: string
+          id: string
+          product_id: string | null
+          reason: string | null
+          slug: string | null
+        }
+        Insert: {
+          created_at?: string
+          digiseller_id?: string | null
+          event: string
+          id?: string
+          product_id?: string | null
+          reason?: string | null
+          slug?: string | null
+        }
+        Update: {
+          created_at?: string
+          digiseller_id?: string | null
+          event?: string
+          id?: string
+          product_id?: string | null
+          reason?: string | null
+          slug?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_availability_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_import_queue: {
         Row: {
           attempts: number
@@ -173,6 +211,8 @@ export type Database = {
           faq: Json
           features: Json
           full_description: string | null
+          hidden_at: string | null
+          hide_reason: string | null
           id: string
           image: string
           image_meta: Json
@@ -181,6 +221,8 @@ export type Database = {
           instructions: string | null
           is_active: boolean
           keywords_grouped: Json
+          last_available_at: string | null
+          last_checked_at: string | null
           last_synced_at: string | null
           old_price: number | null
           price: number
@@ -218,6 +260,8 @@ export type Database = {
           faq?: Json
           features?: Json
           full_description?: string | null
+          hidden_at?: string | null
+          hide_reason?: string | null
           id?: string
           image?: string
           image_meta?: Json
@@ -226,6 +270,8 @@ export type Database = {
           instructions?: string | null
           is_active?: boolean
           keywords_grouped?: Json
+          last_available_at?: string | null
+          last_checked_at?: string | null
           last_synced_at?: string | null
           old_price?: number | null
           price?: number
@@ -263,6 +309,8 @@ export type Database = {
           faq?: Json
           features?: Json
           full_description?: string | null
+          hidden_at?: string | null
+          hide_reason?: string | null
           id?: string
           image?: string
           image_meta?: Json
@@ -271,6 +319,8 @@ export type Database = {
           instructions?: string | null
           is_active?: boolean
           keywords_grouped?: Json
+          last_available_at?: string | null
+          last_checked_at?: string | null
           last_synced_at?: string | null
           old_price?: number | null
           price?: number
