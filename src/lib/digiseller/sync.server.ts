@@ -364,6 +364,21 @@ export async function importDigisellerProductById(
   );
   if (error) throw new Error(error.message);
 
+  // Generate SEO in background (don't block import on AI latency/errors)
+  try {
+    const { data: row } = await supabaseAdmin
+      .from("products")
+      .select("id,seo_locked")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (row && !row.seo_locked) {
+      const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
+      await generateAndSaveSeoForProduct(row.id);
+    }
+  } catch (e) {
+    console.error("[sync] seo gen after import failed", e);
+  }
+
   return { ok: true, slug, created: !existing };
 }
 
