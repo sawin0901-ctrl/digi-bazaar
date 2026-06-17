@@ -65,7 +65,7 @@ export function DigisellerWidget({
   }, [productId, agentId]);
 
   return (
-    <div ref={containerRef} style={{ display: "inline-block" }}>
+    <div ref={containerRef} className="w-full">
       <div
         className="digiseller-buy-standalone"
         data-id={productId}

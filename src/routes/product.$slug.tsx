@@ -319,7 +319,7 @@ function ProductPage() {
               </div>
 
               {product.digiseller_id && (
-                <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-background/60 p-4">
+                <div className="mt-5 rounded-2xl border border-border bg-background/60 p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Оплата через Digiseller
