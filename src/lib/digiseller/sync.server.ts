@@ -50,6 +50,30 @@ function productUrl(id: number): string {
 function productImage(row: Row): string {
   return row.url_image || row.image || `https://graph.digiseller.ru/img.ashx?id_d=${row.id_goods}&w=400&h=300&crop=true`;
 }
+
+function sanitizeDigisellerHtml(raw: string): string {
+  if (!raw) return "";
+  let s = raw;
+  // Convert <br>/<br /> to newlines
+  s = s.replace(/<br\s*\/?\s*>/gi, "\n");
+  // Convert </p>, </div>, </li> to newlines
+  s = s.replace(/<\/(p|div|li|h[1-6])>/gi, "\n");
+  s = s.replace(/<li[^>]*>/gi, "• ");
+  // Strip all remaining tags (including custom like <attention>)
+  s = s.replace(/<[^>]+>/g, "");
+  // Decode common HTML entities
+  s = s
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+  // Collapse whitespace
+  s = s.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  return s;
+}
+
 function pick<T>(arr: T[], n: number): T[] {
   const copy = [...arr];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -221,10 +245,11 @@ export async function importDigisellerProductById(
       { onConflict: "slug" },
     );
 
-  // Description: prefer Digiseller's own info/add_info, else generate via Lovable AI
-  let description = (pd.info ?? "").trim();
-  if (!description) description = (pd.add_info ?? "").trim();
-  if (!description) description = await generateUniqueDescription(title, catSlug);
+  // Description: always generate a clean unique text via Lovable AI.
+  // Fallback to a sanitized version of Digiseller's own info if AI is unavailable.
+  let description = await generateUniqueDescription(title, catSlug);
+  if (!description) description = sanitizeDigisellerHtml(pd.info ?? "");
+  if (!description) description = sanitizeDigisellerHtml(pd.add_info ?? "");
 
   const { data: existing } = await supabaseAdmin
     .from("products")
