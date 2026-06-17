@@ -1,79 +1,117 @@
 import { useEffect, useRef, useState } from "react";
+import { ensureDigisellerScript, invokeDigiseller } from "@/lib/digiseller/loader";
 
-const SCRIPT_ID = "digiseller-js";
-const CSS_ID = "digiseller-css";
 const SELLER_ID = "1459731";
 const PARTNER_ID = "1459731";
+const CACHE_PREFIX = "digi-price:";
+const CACHE_TTL = 1000 * 60 * 30; // 30 min
+const LOAD_TIMEOUT = 5000;
 
-function ensureScriptLoaded() {
-  if (typeof document === "undefined") return;
-  if (!document.getElementById(CSS_ID)) {
-    const link = document.createElement("link");
-    link.type = "text/css";
-    link.rel = "stylesheet";
-    link.id = CSS_ID;
-    link.href = `//shop.digiseller.com/xml/store2_css.asp?seller_id=${SELLER_ID}`;
-    document.head.appendChild(link);
+type CachedPrice = { value: string; currency: string; t: number };
+
+function readCache(productId: string): CachedPrice | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(CACHE_PREFIX + productId);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedPrice;
+    return parsed && parsed.value ? parsed : null;
+  } catch {
+    return null;
   }
-  if (!document.getElementById(SCRIPT_ID)) {
-    const script = document.createElement("script");
-    script.async = true;
-    script.id = SCRIPT_ID;
-    script.src = `//digiseller.com/store2/digiseller-api.js.asp?seller_id=${SELLER_ID}`;
-    document.head.appendChild(script);
+}
+
+function writeCache(productId: string, value: string, currency: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      CACHE_PREFIX + productId,
+      JSON.stringify({ value, currency, t: Date.now() }),
+    );
+  } catch {
+    /* ignore quota */
   }
 }
 
 export function DigisellerPrice({ productId, fallback }: { productId: string; fallback: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [price, setPrice] = useState<{ value: string; currency: string } | null>(null);
+  const cached = typeof window !== "undefined" ? readCache(productId) : null;
+  const [price, setPrice] = useState<{ value: string; currency: string } | null>(cached);
 
   useEffect(() => {
-    ensureScriptLoaded();
     const el = ref.current;
     if (!el) return;
 
-    // Try to invoke DigiSeller renderer on our standalone node once script is ready
-    let invokeTries = 0;
-    const invoke = () => {
-      const w = window as unknown as { DigiSeller?: (container?: HTMLElement) => void };
-      if (typeof w.DigiSeller === "function") {
-        try { w.DigiSeller(el); } catch { /* ignore */ }
-        return true;
-      }
-      return false;
-    };
-    const invokeTimer = window.setInterval(() => {
-      invokeTries += 1;
-      if (invoke() || invokeTries > 40) window.clearInterval(invokeTimer);
-    }, 250);
+    let cancelled = false;
+    let observer: MutationObserver | null = null;
+    let invokeTimer: number | null = null;
+    let timeoutTimer: number | null = null;
 
-    const read = () => {
+    const read = (): boolean => {
       const valEl = el.querySelector(".digiseller-price-val");
       if (!valEl) return false;
       const currencyEl = valEl.querySelector(".digiseller-money_current");
       const currency = currencyEl?.textContent?.trim() || "RUB";
-      // get the text node value (excluding currency block)
       let text = "";
       valEl.childNodes.forEach((n) => {
         if (n.nodeType === Node.TEXT_NODE) text += n.textContent || "";
       });
       const num = text.replace(/[^\d]/g, "");
-      if (num) {
+      if (num && !cancelled) {
         setPrice({ value: num, currency });
+        writeCache(productId, num, currency);
         return true;
       }
       return false;
     };
 
-    if (read()) return;
-    const observer = new MutationObserver(() => {
-      if (read()) observer.disconnect();
-    });
-    observer.observe(el, { childList: true, subtree: true, characterData: true });
+    // Defer to idle so widget never blocks first paint.
+    const start = () => {
+      if (cancelled) return;
+      ensureDigisellerScript(SELLER_ID).catch(() => {
+        /* offline / blocked — keep fallback */
+      });
+
+      let invokeTries = 0;
+      invokeTimer = window.setInterval(() => {
+        invokeTries += 1;
+        if (invokeDigiseller(el) || invokeTries > 40) {
+          if (invokeTimer != null) window.clearInterval(invokeTimer);
+          invokeTimer = null;
+        }
+      }, 250);
+
+      if (read()) return;
+      observer = new MutationObserver(() => {
+        if (read() && observer) observer.disconnect();
+      });
+      observer.observe(el, { childList: true, subtree: true, characterData: true });
+
+      timeoutTimer = window.setTimeout(() => {
+        // Stop waiting; UI already has a fallback price.
+        if (observer) observer.disconnect();
+        if (invokeTimer != null) window.clearInterval(invokeTimer);
+      }, LOAD_TIMEOUT);
+    };
+
+    const ric = (window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number;
+    }).requestIdleCallback;
+    const handle = ric
+      ? ric(start, { timeout: 1500 })
+      : window.setTimeout(start, 0);
+
     return () => {
-      observer.disconnect();
-      window.clearInterval(invokeTimer);
+      cancelled = true;
+      if (observer) observer.disconnect();
+      if (invokeTimer != null) window.clearInterval(invokeTimer);
+      if (timeoutTimer != null) window.clearTimeout(timeoutTimer);
+      if (ric) {
+        const cic = (window as unknown as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
+        cic?.(handle as number);
+      } else {
+        window.clearTimeout(handle as number);
+      }
     };
   }, [productId]);
 
