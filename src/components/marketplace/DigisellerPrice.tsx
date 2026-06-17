@@ -47,6 +47,7 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
     let observer: MutationObserver | null = null;
     let invokeTimer: number | null = null;
     let timeoutTimer: number | null = null;
+    let gotLivePrice = false;
     const t0 = performance.now();
     // eslint-disable-next-line no-console
     console.log(LOG, "mount", { productId, sellerId: SELLER_ID, hasCache: !!cached });
@@ -62,10 +63,19 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
       });
       const num = text.replace(/[^\d]/g, "");
       if (num && !cancelled) {
+        gotLivePrice = true;
         // eslint-disable-next-line no-console
         console.log(LOG, "price read", { productId, num, currency, elapsedMs: Math.round(performance.now() - t0) });
         setPrice({ value: num, currency });
         writeCache(productId, num, currency);
+        if (timeoutTimer != null) {
+          window.clearTimeout(timeoutTimer);
+          timeoutTimer = null;
+        }
+        if (invokeTimer != null) {
+          window.clearInterval(invokeTimer);
+          invokeTimer = null;
+        }
         return true;
       }
       return false;
@@ -79,14 +89,21 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
         console.warn(LOG, "script load failed — using fallback price", { productId, err: String(err) });
       });
 
+      const runHiddenWidget = () => {
+        if (cancelled) return false;
+        return invokeDigiseller(el, { silent: true });
+      };
+
       let invokeTries = 0;
-      invokeTimer = window.setInterval(() => {
-        invokeTries += 1;
-        if (invokeDigiseller(el) || invokeTries > 40) {
-          if (invokeTimer != null) window.clearInterval(invokeTimer);
-          invokeTimer = null;
-        }
-      }, 250);
+      if (!runHiddenWidget()) {
+        invokeTimer = window.setInterval(() => {
+          invokeTries += 1;
+          if (runHiddenWidget() || invokeTries > 12) {
+            if (invokeTimer != null) window.clearInterval(invokeTimer);
+            invokeTimer = null;
+          }
+        }, 250);
+      }
 
       if (read()) return;
       observer = new MutationObserver(() => {
@@ -94,8 +111,11 @@ export function DigisellerPrice({ productId, fallback }: { productId: string; fa
       });
       observer.observe(el, { childList: true, subtree: true, characterData: true });
 
+      if (gotLivePrice) return;
+
       timeoutTimer = window.setTimeout(() => {
         // Stop waiting; UI already has a fallback price.
+        if (gotLivePrice) return;
         if (observer) observer.disconnect();
         if (invokeTimer != null) window.clearInterval(invokeTimer);
         // eslint-disable-next-line no-console
