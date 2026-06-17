@@ -3,7 +3,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/marketplace/Layout";
 import { ProductCard } from "@/components/marketplace/ProductCard";
-import { categoriesQO, digisellerProductsQO } from "@/lib/marketplace/queries";
+import { categoriesQO, productsQO } from "@/lib/marketplace/queries";
 
 export const Route = createFileRoute("/catalog")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/catalog")({
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(categoriesQO()),
-      context.queryClient.ensureQueryData(digisellerProductsQO()),
+      context.queryClient.ensureQueryData(productsQO()),
     ]);
   },
   head: () => ({
@@ -39,7 +39,7 @@ function CatalogPage() {
   useEffect(() => { if (search.category) setCat(search.category); }, [search.category]);
   const { data: categories } = useSuspenseQuery(categoriesQO());
   const { data: products } = useSuspenseQuery(
-    digisellerProductsQO(cat === "all" ? undefined : { category: cat }),
+    productsQO(cat === "all" ? undefined : { category: cat }),
   );
 
   const list = useMemo(() => {
