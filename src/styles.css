@@ -240,3 +240,22 @@
 .digiseller-embed input:focus {
   border-color: var(--color-primary) !important;
 }
+/* Quantity selector alignment in Digiseller widget */
+.digiseller-embed input[type="number"] {
+  text-align: center !important;
+  -moz-appearance: textfield !important;
+}
+.digiseller-embed input[type="number"]::-webkit-outer-spin-button,
+.digiseller-embed input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+.digiseller-embed [class*="qty"],
+.digiseller-embed [class*="quantity"],
+.digiseller-embed [id*="qty"],
+.digiseller-embed [id*="quantity"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+}
