@@ -41,6 +41,20 @@ export type ProductDTO = {
   external_url?: string | null;
 };
 
+export type ProductSeoDTO = {
+  seo_title: string | null;
+  seo_description: string | null;
+  seo_keywords: string | null;
+  seo_h1: string | null;
+  short_description: string | null;
+  full_description: string | null;
+  advantages: string[];
+  instructions: string | null;
+  faq: { question: string; answer: string }[];
+  features: string[];
+  image_meta: { url: string; alt: string; title: string; caption: string }[];
+};
+
 export type VariantDTO = {
   label: string;
   usd_amount: number | null;
@@ -48,7 +62,7 @@ export type VariantDTO = {
   sort_order: number;
 };
 
-export type ProductWithVariants = ProductDTO & { variants: VariantDTO[] };
+export type ProductWithVariants = ProductDTO & { variants: VariantDTO[] } & ProductSeoDTO;
 
 export type TextDTO = { slug: string; title: string; body: string };
 
@@ -93,7 +107,7 @@ export const getProductBySlug = createServerFn({ method: "GET" })
     const { data: prow, error: pErr } = await sb
       .from("products")
       .select(
-        "id,slug,title,category_slug,seller,seller_rating,price,old_price,rating,reviews,sales,image,images,videos,badge,description,details_url,buy_url,digiseller_id,variant_label",
+        "id,slug,title,category_slug,seller,seller_rating,price,old_price,rating,reviews,sales,image,images,videos,badge,description,details_url,buy_url,digiseller_id,variant_label,seo_title,seo_description,seo_keywords,seo_h1,short_description,full_description,advantages,instructions,faq,features,image_meta",
       )
       .eq("slug", data.slug)
       .eq("is_active", true)
@@ -113,6 +127,12 @@ export const getProductBySlug = createServerFn({ method: "GET" })
       ...product,
       images: Array.isArray(product.images) ? (product.images as string[]) : [],
       videos: Array.isArray(product.videos) ? (product.videos as string[]) : [],
+      advantages: Array.isArray(product.advantages) ? (product.advantages as string[]) : [],
+      features: Array.isArray(product.features) ? (product.features as string[]) : [],
+      faq: Array.isArray(product.faq) ? (product.faq as { question: string; answer: string }[]) : [],
+      image_meta: Array.isArray(product.image_meta)
+        ? (product.image_meta as { url: string; alt: string; title: string; caption: string }[])
+        : [],
       variants: (vrows ?? []).map((v) => ({
         label: v.label,
         usd_amount: v.usd_amount === null ? null : Number(v.usd_amount),

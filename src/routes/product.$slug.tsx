@@ -39,14 +39,86 @@ export const Route = createFileRoute("/product/$slug")({
       context.queryClient.ensureQueryData(siteTextQO("buyer_rules")),
       context.queryClient.ensureQueryData(siteTextQO("warranty")),
     ]);
+    return { product };
   },
-  head: ({ params }) => {
-    // Note: head() runs before loader data is available in match cache reliably across SSR;
-    // we set conservative defaults and rely on the route-level title once loaded.
+  head: ({ params, loaderData }) => {
+    const p = loaderData?.product;
+    if (!p) {
+      return { meta: [{ title: `Товар ${params.slug} — DIGIVAULT` }] };
+    }
+    const title = p.seo_title || `${p.title} — DIGIVAULT`;
+    const desc =
+      p.seo_description ||
+      p.short_description ||
+      (p.description ? p.description.slice(0, 160) : `Купить ${p.title} с моментальной доставкой.`);
+    const url = `/product/${params.slug}`;
+    const scripts: Array<{ type: string; children: string }> = [];
+    // Product + Offer + AggregateRating
+    scripts.push({
+      type: "application/ld+json",
+      children: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: p.seo_h1 || p.title,
+        description: desc,
+        image: [p.image, ...(p.images ?? [])].filter(Boolean),
+        brand: { "@type": "Brand", name: p.seller || "DIGIVAULT" },
+        offers: {
+          "@type": "Offer",
+          price: p.price,
+          priceCurrency: "RUB",
+          availability: "https://schema.org/InStock",
+          url,
+        },
+        aggregateRating:
+          p.reviews > 0
+            ? {
+                "@type": "AggregateRating",
+                ratingValue: p.rating,
+                reviewCount: p.reviews,
+              }
+            : undefined,
+      }),
+    });
+    if (p.faq && p.faq.length > 0) {
+      scripts.push({
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: p.faq.map((q) => ({
+            "@type": "Question",
+            name: q.question,
+            acceptedAnswer: { "@type": "Answer", text: q.answer },
+          })),
+        }),
+      });
+    }
+    scripts.push({
+      type: "application/ld+json",
+      children: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Главная", item: "/" },
+          { "@type": "ListItem", position: 2, name: "Каталог", item: "/catalog" },
+          { "@type": "ListItem", position: 3, name: p.title, item: url },
+        ],
+      }),
+    });
     return {
       meta: [
-        { title: `Товар ${params.slug} — DIGIVAULT` },
+        { title },
+        { name: "description", content: desc },
+        ...(p.seo_keywords ? [{ name: "keywords", content: p.seo_keywords }] : []),
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: url },
+        ...(p.image ? [{ property: "og:image", content: p.image }] : []),
       ],
+      links: [{ rel: "canonical", href: url }],
+      scripts,
     };
   },
   component: ProductPage,
@@ -133,6 +205,12 @@ function ProductPage() {
   };
 
   const cleanDescription = (product.description ?? "").replace(/!?\[[^\]]*\]\([^)]*\)/g, "").trim();
+  const imageMetaByUrl = new Map<string, { alt: string; title: string; caption: string }>();
+  for (const m of product.image_meta ?? []) imageMetaByUrl.set(m.url, m);
+  const altFor = (src: string, fallback: string) =>
+    imageMetaByUrl.get(src)?.alt || fallback;
+  const titleFor = (src: string, fallback: string) =>
+    imageMetaByUrl.get(src)?.title || fallback;
 
   const selectedVariant = product.variants.find((v) => v.label === variant) ?? null;
   const canBuy = (!hasVariants || !!variant) && (!hasVariants || agreed);
@@ -189,7 +267,8 @@ function ProductPage() {
                       >
                         <img
                           src={src}
-                          alt={`Миниатюра ${i + 1}`}
+                          alt={altFor(src, `Миниатюра ${i + 1}`)}
+                          title={titleFor(src, product.title)}
                           className="h-16 w-16 object-cover"
                         />
                       </button>
@@ -199,13 +278,17 @@ function ProductPage() {
                 <div className="flex w-full max-w-[340px] items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted p-3">
                   <img
                     src={allImages[activeImage] ?? product.image}
-                    alt={product.title}
+                    alt={altFor(allImages[activeImage] ?? product.image, product.seo_h1 || product.title)}
+                    title={titleFor(allImages[activeImage] ?? product.image, product.title)}
                     className="h-auto w-full object-contain"
                   />
                 </div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold leading-tight tracking-tight md:text-[28px]">{product.title}</h1>
+                <h1 className="text-2xl font-bold leading-tight tracking-tight md:text-[28px]">{product.seo_h1 || product.title}</h1>
+                {product.short_description && (
+                  <p className="mt-2 text-sm text-muted-foreground">{product.short_description}</p>
+                )}
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                   <span>Продано <b className="text-foreground">{product.sales.toLocaleString("ru-RU")}</b></span>
                   <span className="text-border">•</span>
@@ -261,6 +344,61 @@ function ProductPage() {
 
             {tab === "description" && (
               <div className="prose prose-sm mt-5 max-w-3xl dark:prose-invert prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary">
+                {product.full_description && (
+                  <div className="not-prose mb-6 space-y-3 text-sm leading-relaxed text-foreground/90">
+                    {product.full_description.split(/\n\n+/).map((para, i) => (
+                      <p key={i}>{para}</p>
+                    ))}
+                  </div>
+                )}
+                {product.advantages.length > 0 && (
+                  <div className="not-prose mb-6">
+                    <h2 className="mb-3 text-lg font-bold">Преимущества</h2>
+                    <ul className="grid gap-2 sm:grid-cols-2">
+                      {product.advantages.map((a, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                          <span>{a}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {product.features.length > 0 && (
+                  <div className="not-prose mb-6">
+                    <h2 className="mb-3 text-lg font-bold">Особенности</h2>
+                    <ul className="space-y-1.5 text-sm text-foreground/90">
+                      {product.features.map((f, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <Zap className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {product.instructions && (
+                  <div className="not-prose mb-6">
+                    <h2 className="mb-3 text-lg font-bold">Инструкция по использованию</h2>
+                    <div className="space-y-2 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
+                      {product.instructions}
+                    </div>
+                  </div>
+                )}
+                {product.faq.length > 0 && (
+                  <div className="not-prose mb-6">
+                    <h2 className="mb-3 text-lg font-bold">Часто задаваемые вопросы</h2>
+                    <div className="space-y-3">
+                      {product.faq.map((q, i) => (
+                        <details key={i} className="group rounded-xl border border-border bg-background/50 p-4">
+                          <summary className="cursor-pointer text-sm font-semibold">{q.question}</summary>
+                          <p className="mt-2 text-sm text-muted-foreground">{q.answer}</p>
+                        </details>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {!product.full_description && (
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -293,6 +431,7 @@ function ProductPage() {
                 >
                   {cleanDescription}
                 </ReactMarkdown>
+                )}
               </div>
             )}
 
@@ -333,7 +472,8 @@ function ProductPage() {
                           >
                             <img
                               src={src}
-                              alt={`Изображение ${i + 1}`}
+                              alt={altFor(src, `${product.title} — изображение ${i + 1}`)}
+                              title={titleFor(src, product.title)}
                               loading="lazy"
                               className="h-64 w-full object-contain transition hover:scale-[1.02]"
                             />

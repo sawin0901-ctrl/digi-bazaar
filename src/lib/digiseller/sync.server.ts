@@ -278,6 +278,21 @@ export async function runDailyImport(): Promise<{ imported: number; skipped: num
       { onConflict: "slug" },
     );
     if (!error) imported++;
+    if (!error) {
+      try {
+        const { data: row } = await supabaseAdmin
+          .from("products")
+          .select("id,seo_locked")
+          .eq("slug", slug)
+          .maybeSingle();
+        if (row && !row.seo_locked) {
+          const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
+          await generateAndSaveSeoForProduct(row.id);
+        }
+      } catch (e) {
+        console.error("[sync] daily import seo failed", e);
+      }
+    }
   }
 
   return { imported, skipped: allRows.length - chosen.length, category: target.name };
@@ -364,6 +379,21 @@ export async function importDigisellerProductById(
   );
   if (error) throw new Error(error.message);
 
+  // Generate SEO in background (don't block import on AI latency/errors)
+  try {
+    const { data: row } = await supabaseAdmin
+      .from("products")
+      .select("id,seo_locked")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (row && !row.seo_locked) {
+      const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
+      await generateAndSaveSeoForProduct(row.id);
+    }
+  } catch (e) {
+    console.error("[sync] seo gen after import failed", e);
+  }
+
   return { ok: true, slug, created: !existing };
 }
 
@@ -424,6 +454,20 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       if (pd.image) patch.image = pd.image;
       const { error } = await supabaseAdmin.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
+      // SEO regen if not locked
+      try {
+        const { data: cur } = await supabaseAdmin
+          .from("products")
+          .select("seo_locked")
+          .eq("id", p.id)
+          .maybeSingle();
+        if (cur && !cur.seo_locked) {
+          const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
+          await generateAndSaveSeoForProduct(p.id);
+        }
+      } catch (e) {
+        console.error("[sync] seo regen failed", e);
+      }
     } catch (e) {
       console.error("sync failed for", p.digiseller_id, e);
     }

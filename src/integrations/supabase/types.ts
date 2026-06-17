@@ -120,6 +120,7 @@ export type Database = {
       }
       products: {
         Row: {
+          advantages: Json
           badge: string | null
           buy_url: string | null
           category_slug: string
@@ -128,11 +129,17 @@ export type Database = {
           details_url: string | null
           digiseller_category_id: string | null
           digiseller_id: string | null
+          faq: Json
+          features: Json
+          full_description: string | null
           id: string
           image: string
+          image_meta: Json
           images: Json
           in_stock: boolean
+          instructions: string | null
           is_active: boolean
+          keywords_grouped: Json
           last_synced_at: string | null
           old_price: number | null
           price: number
@@ -141,6 +148,15 @@ export type Database = {
           sales: number
           seller: string
           seller_rating: number
+          seo_description: string | null
+          seo_generated_at: string | null
+          seo_h1: string | null
+          seo_keywords: string | null
+          seo_locked: boolean
+          seo_score: number
+          seo_slug: string | null
+          seo_title: string | null
+          short_description: string | null
           slug: string
           sort_order: number
           title: string
@@ -149,6 +165,7 @@ export type Database = {
           videos: Json
         }
         Insert: {
+          advantages?: Json
           badge?: string | null
           buy_url?: string | null
           category_slug: string
@@ -157,11 +174,17 @@ export type Database = {
           details_url?: string | null
           digiseller_category_id?: string | null
           digiseller_id?: string | null
+          faq?: Json
+          features?: Json
+          full_description?: string | null
           id?: string
           image?: string
+          image_meta?: Json
           images?: Json
           in_stock?: boolean
+          instructions?: string | null
           is_active?: boolean
+          keywords_grouped?: Json
           last_synced_at?: string | null
           old_price?: number | null
           price?: number
@@ -170,6 +193,15 @@ export type Database = {
           sales?: number
           seller?: string
           seller_rating?: number
+          seo_description?: string | null
+          seo_generated_at?: string | null
+          seo_h1?: string | null
+          seo_keywords?: string | null
+          seo_locked?: boolean
+          seo_score?: number
+          seo_slug?: string | null
+          seo_title?: string | null
+          short_description?: string | null
           slug: string
           sort_order?: number
           title: string
@@ -178,6 +210,7 @@ export type Database = {
           videos?: Json
         }
         Update: {
+          advantages?: Json
           badge?: string | null
           buy_url?: string | null
           category_slug?: string
@@ -186,11 +219,17 @@ export type Database = {
           details_url?: string | null
           digiseller_category_id?: string | null
           digiseller_id?: string | null
+          faq?: Json
+          features?: Json
+          full_description?: string | null
           id?: string
           image?: string
+          image_meta?: Json
           images?: Json
           in_stock?: boolean
+          instructions?: string | null
           is_active?: boolean
+          keywords_grouped?: Json
           last_synced_at?: string | null
           old_price?: number | null
           price?: number
@@ -199,6 +238,15 @@ export type Database = {
           sales?: number
           seller?: string
           seller_rating?: number
+          seo_description?: string | null
+          seo_generated_at?: string | null
+          seo_h1?: string | null
+          seo_keywords?: string | null
+          seo_locked?: boolean
+          seo_score?: number
+          seo_slug?: string | null
+          seo_title?: string | null
+          short_description?: string | null
           slug?: string
           sort_order?: number
           title?: string
