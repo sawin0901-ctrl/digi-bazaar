@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as DealsRouteImport } from './routes/deals'
@@ -19,12 +20,19 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminImportQueueRouteImport } from './routes/_authenticated/admin-import-queue'
+import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_authenticated/admin-availability'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicRatesRouteImport } from './routes/api/public/rates'
 import { Route as ApiPublicHooksProcessImportQueueRouteImport } from './routes/api/public/hooks/process-import-queue'
 import { Route as ApiPublicHooksDigisellerSyncRouteImport } from './routes/api/public/hooks/digiseller-sync'
 import { Route as ApiPublicHooksDigisellerImportRouteImport } from './routes/api/public/hooks/digiseller-import'
+import { Route as ApiPublicHooksDigisellerAvailabilityRouteImport } from './routes/api/public/hooks/digiseller-availability'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReviewsRoute = ReviewsRouteImport.update({
   id: '/reviews',
   path: '/reviews',
@@ -75,6 +83,12 @@ const AuthenticatedAdminImportQueueRoute =
     path: '/admin-import-queue',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminAvailabilityRoute =
+  AuthenticatedAdminAvailabilityRouteImport.update({
+    id: '/admin-availability',
+    path: '/admin-availability',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -103,6 +117,12 @@ const ApiPublicHooksDigisellerImportRoute =
     path: '/api/public/hooks/digiseller-import',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksDigisellerAvailabilityRoute =
+  ApiPublicHooksDigisellerAvailabilityRouteImport.update({
+    id: '/api/public/hooks/digiseller-availability',
+    path: '/api/public/hooks/digiseller-availability',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -112,10 +132,13 @@ export interface FileRoutesByFullPath {
   '/deals': typeof DealsRoute
   '/faq': typeof FaqRoute
   '/reviews': typeof ReviewsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/admin-availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/rates': typeof ApiPublicRatesRoute
+  '/api/public/hooks/digiseller-availability': typeof ApiPublicHooksDigisellerAvailabilityRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -128,10 +151,13 @@ export interface FileRoutesByTo {
   '/deals': typeof DealsRoute
   '/faq': typeof FaqRoute
   '/reviews': typeof ReviewsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/admin-availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/rates': typeof ApiPublicRatesRoute
+  '/api/public/hooks/digiseller-availability': typeof ApiPublicHooksDigisellerAvailabilityRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -146,10 +172,13 @@ export interface FileRoutesById {
   '/deals': typeof DealsRoute
   '/faq': typeof FaqRoute
   '/reviews': typeof ReviewsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/admin-availability': typeof AuthenticatedAdminAvailabilityRoute
   '/_authenticated/admin-import-queue': typeof AuthenticatedAdminImportQueueRoute
   '/product/$slug': typeof ProductSlugRoute
   '/api/public/rates': typeof ApiPublicRatesRoute
+  '/api/public/hooks/digiseller-availability': typeof ApiPublicHooksDigisellerAvailabilityRoute
   '/api/public/hooks/digiseller-import': typeof ApiPublicHooksDigisellerImportRoute
   '/api/public/hooks/digiseller-sync': typeof ApiPublicHooksDigisellerSyncRoute
   '/api/public/hooks/process-import-queue': typeof ApiPublicHooksProcessImportQueueRoute
@@ -164,10 +193,13 @@ export interface FileRouteTypes {
     | '/deals'
     | '/faq'
     | '/reviews'
+    | '/sitemap.xml'
     | '/admin'
+    | '/admin-availability'
     | '/admin-import-queue'
     | '/product/$slug'
     | '/api/public/rates'
+    | '/api/public/hooks/digiseller-availability'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -180,10 +212,13 @@ export interface FileRouteTypes {
     | '/deals'
     | '/faq'
     | '/reviews'
+    | '/sitemap.xml'
     | '/admin'
+    | '/admin-availability'
     | '/admin-import-queue'
     | '/product/$slug'
     | '/api/public/rates'
+    | '/api/public/hooks/digiseller-availability'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -197,10 +232,13 @@ export interface FileRouteTypes {
     | '/deals'
     | '/faq'
     | '/reviews'
+    | '/sitemap.xml'
     | '/_authenticated/admin'
+    | '/_authenticated/admin-availability'
     | '/_authenticated/admin-import-queue'
     | '/product/$slug'
     | '/api/public/rates'
+    | '/api/public/hooks/digiseller-availability'
     | '/api/public/hooks/digiseller-import'
     | '/api/public/hooks/digiseller-sync'
     | '/api/public/hooks/process-import-queue'
@@ -215,8 +253,10 @@ export interface RootRouteChildren {
   DealsRoute: typeof DealsRoute
   FaqRoute: typeof FaqRoute
   ReviewsRoute: typeof ReviewsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ProductSlugRoute: typeof ProductSlugRoute
   ApiPublicRatesRoute: typeof ApiPublicRatesRoute
+  ApiPublicHooksDigisellerAvailabilityRoute: typeof ApiPublicHooksDigisellerAvailabilityRoute
   ApiPublicHooksDigisellerImportRoute: typeof ApiPublicHooksDigisellerImportRoute
   ApiPublicHooksDigisellerSyncRoute: typeof ApiPublicHooksDigisellerSyncRoute
   ApiPublicHooksProcessImportQueueRoute: typeof ApiPublicHooksProcessImportQueueRoute
@@ -224,6 +264,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reviews': {
       id: '/reviews'
       path: '/reviews'
@@ -294,6 +341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminImportQueueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin-availability': {
+      id: '/_authenticated/admin-availability'
+      path: '/admin-availability'
+      fullPath: '/admin-availability'
+      preLoaderRoute: typeof AuthenticatedAdminAvailabilityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -329,16 +383,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDigisellerImportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/digiseller-availability': {
+      id: '/api/public/hooks/digiseller-availability'
+      path: '/api/public/hooks/digiseller-availability'
+      fullPath: '/api/public/hooks/digiseller-availability'
+      preLoaderRoute: typeof ApiPublicHooksDigisellerAvailabilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAdminAvailabilityRoute: typeof AuthenticatedAdminAvailabilityRoute
   AuthenticatedAdminImportQueueRoute: typeof AuthenticatedAdminImportQueueRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAdminAvailabilityRoute: AuthenticatedAdminAvailabilityRoute,
   AuthenticatedAdminImportQueueRoute: AuthenticatedAdminImportQueueRoute,
 }
 
@@ -354,8 +417,11 @@ const rootRouteChildren: RootRouteChildren = {
   DealsRoute: DealsRoute,
   FaqRoute: FaqRoute,
   ReviewsRoute: ReviewsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   ProductSlugRoute: ProductSlugRoute,
   ApiPublicRatesRoute: ApiPublicRatesRoute,
+  ApiPublicHooksDigisellerAvailabilityRoute:
+    ApiPublicHooksDigisellerAvailabilityRoute,
   ApiPublicHooksDigisellerImportRoute: ApiPublicHooksDigisellerImportRoute,
   ApiPublicHooksDigisellerSyncRoute: ApiPublicHooksDigisellerSyncRoute,
   ApiPublicHooksProcessImportQueueRoute: ApiPublicHooksProcessImportQueueRoute,
