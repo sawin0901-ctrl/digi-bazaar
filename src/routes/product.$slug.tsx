@@ -95,6 +95,12 @@ function ProductPage() {
     .slice(0, 4);
 
   const galleryImages: string[] = (() => {
+    const fromDb = product.images ?? [];
+    if (fromDb.length > 0) {
+      const out: string[] = [];
+      for (const u of fromDb) if (u && !out.includes(u)) out.push(u);
+      return out;
+    }
     const desc = product.description ?? "";
     const out: string[] = [];
     const re = /!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
@@ -105,6 +111,26 @@ function ProductPage() {
     return out;
   })();
   const allImages = product.image ? [product.image, ...galleryImages.filter((src) => src !== product.image)] : galleryImages;
+  const galleryVideos: string[] = product.videos ?? [];
+  const toEmbedUrl = (url: string): string => {
+    try {
+      const u = new URL(url);
+      if (/youtu\.be$/i.test(u.hostname)) {
+        return `https://www.youtube.com/embed/${u.pathname.replace(/^\//, "")}`;
+      }
+      if (/youtube\.com$/i.test(u.hostname)) {
+        const v = u.searchParams.get("v");
+        if (v) return `https://www.youtube.com/embed/${v}`;
+      }
+      if (/vimeo\.com$/i.test(u.hostname)) {
+        const id = u.pathname.replace(/^\//, "");
+        return `https://player.vimeo.com/video/${id}`;
+      }
+      return url;
+    } catch {
+      return url;
+    }
+  };
 
   const cleanDescription = (product.description ?? "").replace(/!?\[[^\]]*\]\([^)]*\)/g, "").trim();
 
@@ -272,26 +298,49 @@ function ProductPage() {
 
             {tab === "images" && (
               <div className="mt-5">
-                {galleryImages.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Изображений пока нет.</p>
+                {galleryImages.length === 0 && galleryVideos.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Изображений и видео пока нет.</p>
                 ) : (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {galleryImages.map((src, i) => (
-                      <a
-                        key={`${src}-${i}`}
-                        href={src}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block overflow-hidden rounded-2xl border border-border bg-muted"
-                      >
-                        <img
-                          src={src}
-                          alt={`Изображение ${i + 1}`}
-                          loading="lazy"
-                          className="h-64 w-full object-contain transition hover:scale-[1.02]"
-                        />
-                      </a>
-                    ))}
+                  <div className="space-y-6">
+                    {galleryVideos.length > 0 && (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {galleryVideos.map((src, i) => (
+                          <div
+                            key={`v-${i}`}
+                            className="aspect-video overflow-hidden rounded-2xl border border-border bg-black"
+                          >
+                            <iframe
+                              src={toEmbedUrl(src)}
+                              title={`Видео ${i + 1}`}
+                              loading="lazy"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="h-full w-full"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {galleryImages.length > 0 && (
+                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {galleryImages.map((src, i) => (
+                          <a
+                            key={`${src}-${i}`}
+                            href={src}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block overflow-hidden rounded-2xl border border-border bg-muted"
+                          >
+                            <img
+                              src={src}
+                              alt={`Изображение ${i + 1}`}
+                              loading="lazy"
+                              className="h-64 w-full object-contain transition hover:scale-[1.02]"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

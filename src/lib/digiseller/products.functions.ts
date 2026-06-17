@@ -64,6 +64,8 @@ function mapRow(row: SellerGoodsRow, categorySlug: string): ProductDTO {
     reviews: row.cnt_comment ?? 0,
     sales: row.cnt_sell ?? 0,
     image: productImage(row),
+    images: [],
+    videos: [],
     badge: row.has_discount ? "-%" : null,
     description: "",
     details_url: productUrl(row.id_goods),

@@ -30,6 +30,8 @@ export type ProductDTO = {
   reviews: number;
   sales: number;
   image: string;
+  images: string[];
+  videos: string[];
   badge: string | null;
   description: string;
   details_url: string | null;
@@ -68,7 +70,7 @@ export const listProducts = createServerFn({ method: "GET" })
     let q = sb
       .from("products")
       .select(
-        "slug,title,category_slug,seller,seller_rating,price,old_price,rating,reviews,sales,image,badge,description,details_url,buy_url,digiseller_id,variant_label",
+        "slug,title,category_slug,seller,seller_rating,price,old_price,rating,reviews,sales,image,images,videos,badge,description,details_url,buy_url,digiseller_id,variant_label",
       )
       .eq("is_active", true)
       .order("sort_order")
@@ -77,7 +79,11 @@ export const listProducts = createServerFn({ method: "GET" })
     if (data.dealsOnly) q = q.not("old_price", "is", null);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return (rows ?? []).map((r) => ({
+      ...r,
+      images: Array.isArray(r.images) ? (r.images as string[]) : [],
+      videos: Array.isArray(r.videos) ? (r.videos as string[]) : [],
+    }));
   });
 
 export const getProductBySlug = createServerFn({ method: "GET" })
@@ -87,7 +93,7 @@ export const getProductBySlug = createServerFn({ method: "GET" })
     const { data: prow, error: pErr } = await sb
       .from("products")
       .select(
-        "id,slug,title,category_slug,seller,seller_rating,price,old_price,rating,reviews,sales,image,badge,description,details_url,buy_url,digiseller_id,variant_label",
+        "id,slug,title,category_slug,seller,seller_rating,price,old_price,rating,reviews,sales,image,images,videos,badge,description,details_url,buy_url,digiseller_id,variant_label",
       )
       .eq("slug", data.slug)
       .eq("is_active", true)
@@ -105,6 +111,8 @@ export const getProductBySlug = createServerFn({ method: "GET" })
     void _omit;
     return {
       ...product,
+      images: Array.isArray(product.images) ? (product.images as string[]) : [],
+      videos: Array.isArray(product.videos) ? (product.videos as string[]) : [],
       variants: (vrows ?? []).map((v) => ({
         label: v.label,
         usd_amount: v.usd_amount === null ? null : Number(v.usd_amount),
