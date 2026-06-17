@@ -242,21 +242,22 @@ function ProductPage() {
               </div>
             )}
 
-            {product.digiseller_id && (
-              <div className="mt-7 border-t border-border pt-6">
-                <div className="digiseller-embed digiseller-inline">
-                  <DigisellerWidget
-                    productId={String(product.digiseller_id)}
-                    agentId={PARTNER_ID}
-                    sellerId={SELLER_ID}
-                    showName={false}
-                    showPrice={false}
-                    showImage={false}
-                  />
-                </div>
-              </div>
-            )}
           </div>
+          {product.digiseller_id && (
+            <div className="mt-6 rounded-3xl border border-border bg-card p-5 md:p-7">
+              <div className="digiseller-embed digiseller-inline">
+                <DigisellerWidget
+                  productId={String(product.digiseller_id)}
+                  agentId={PARTNER_ID}
+                  sellerId={SELLER_ID}
+                  showName={false}
+                  showPrice={false}
+                  showImage={false}
+                />
+              </div>
+            </div>
+          )}
+        </div>
 
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-3xl border border-border bg-card p-6 shadow-lg shadow-black/5">
