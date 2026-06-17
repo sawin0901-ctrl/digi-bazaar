@@ -109,8 +109,14 @@ const ctx = { waitUntil() {}, passThroughOnException() {} };
 
 const server = http.createServer(async (req, res) => {
   try {
+    const urlPath = (req.url || "/").split("?")[0];
+    if (urlPath === "/healthz") {
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
+      res.end("ok");
+      return;
+    }
+
     if (req.method === "GET" || req.method === "HEAD") {
-      const urlPath = (req.url || "/").split("?")[0];
       if (urlPath !== "/" && (await tryServeStatic(req, res, urlPath))) return;
     }
     const request = nodeReqToFetch(req);

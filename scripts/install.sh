@@ -135,17 +135,17 @@ pm2 startup systemd -u root --hp /root >/dev/null || true
 
 log "Проверка приложения на 127.0.0.1:${PORT}"
 for i in {1..30}; do
-  if curl -fsS "http://127.0.0.1:${PORT}" >/dev/null 2>&1; then
+  if curl -fsS "http://127.0.0.1:${PORT}/healthz" >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
-if ! curl -fsS "http://127.0.0.1:${PORT}" >/dev/null 2>&1; then
+if ! curl -fsS "http://127.0.0.1:${PORT}/healthz" >/dev/null 2>&1; then
   warn "Приложение не ответило на 127.0.0.1:${PORT}. Последние логи:"
   pm2 logs "$APP_NAME" --lines 80 --nostream || true
   exit 1
 else
-  log "Приложение отвечает на 127.0.0.1:${PORT}"
+  log "Приложение запущено и отвечает на 127.0.0.1:${PORT}/healthz"
 fi
 
 ### ─── 9. Nginx ────────────────────────────────────────────────────────────
