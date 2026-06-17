@@ -1,11 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
-async function assertAdmin(ctx: { supabase: { rpc: (n: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> }; userId: string }) {
-  const { data, error } = await ctx.supabase.rpc("has_role", {
-    _user_id: ctx.userId,
-    _role: "admin",
-  });
+async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: admin role required");
 }
@@ -41,7 +40,7 @@ function daysSince(iso: string | null): number | null {
 export const adminAvailabilityOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context);
+    await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const [{ count: activeCount }, { count: hiddenCount }, { data: hiddenRows }, { data: logRows }] =
@@ -82,7 +81,7 @@ export const adminAvailabilityOverview = createServerFn({ method: "GET" })
 export const adminRunAvailabilityNow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context);
+    await assertAdmin(context.supabase, context.userId);
     const { runFullAvailabilityCheck } = await import("@/lib/digiseller/availability.server");
     return runFullAvailabilityCheck();
   });
