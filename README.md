@@ -120,7 +120,8 @@ chmod 600 /var/www/gameplaza/.env
 cd /var/www/gameplaza
 bun install
 bun run build
-pm2 start .output/server/index.mjs --name gameplaza --env-file .env -i 2
+set -a; . ./.env; set +a
+pm2 start scripts/node-server.mjs --name gameplaza --interpreter node -i 1 --update-env
 pm2 save
 pm2 startup systemd -u root --hp /root
 ```
