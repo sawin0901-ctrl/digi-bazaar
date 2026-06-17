@@ -10,6 +10,7 @@ interface DigisellerWidgetProps {
 }
 
 const RENDER_TIMEOUT = 8000;
+const LOG = "[digiseller:widget]";
 // Selectors that indicate the Digiseller standalone widget has actually
 // painted something inside our container. The script never adds
 // `.digiseller-buy`, so we look for any of the standalone markers.
@@ -35,12 +36,24 @@ export function DigisellerWidget({
     let cancelled = false;
     let pollTimer: number | null = null;
     let timeoutTimer: number | null = null;
+    const t0 = performance.now();
+    // eslint-disable-next-line no-console
+    console.log(LOG, "mount", { productId, agentId, sellerId, compact });
     setStatus("loading");
 
     let observer: MutationObserver | null = null;
 
     const markReady = () => {
       if (cancelled) return;
+      const el = containerRef.current;
+      // eslint-disable-next-line no-console
+      console.log(LOG, "ready", {
+        productId,
+        elapsedMs: Math.round(performance.now() - t0),
+        hasContainer: !!el,
+        childCount: el?.childElementCount ?? 0,
+        renderedSelectors: el ? Array.from(el.querySelectorAll(READY_SELECTORS)).map((n) => (n as HTMLElement).className).slice(0, 5) : [],
+      });
       setStatus("ready");
       if (pollTimer != null) {
         window.clearInterval(pollTimer);
@@ -60,11 +73,17 @@ export function DigisellerWidget({
 
     const start = async () => {
       try {
+        // eslint-disable-next-line no-console
+        console.log(LOG, "ensure script", { productId, sellerId });
         await ensureDigisellerScript(sellerId);
         if (cancelled) return;
 
         const el = containerRef.current;
-        if (!el) return;
+        if (!el) {
+          // eslint-disable-next-line no-console
+          console.warn(LOG, "container ref missing after script load", { productId });
+          return;
+        }
 
         // Watch container for any rendered Digiseller markup.
         observer = new MutationObserver(() => {
@@ -106,9 +125,21 @@ export function DigisellerWidget({
             window.clearInterval(pollTimer);
             pollTimer = null;
           }
+          // eslint-disable-next-line no-console
+          console.error(LOG, "render timeout — widget not painted", {
+            productId,
+            sellerId,
+            agentId,
+            elapsedMs: Math.round(performance.now() - t0),
+            digiSellerGlobal: typeof (window as unknown as { DigiSeller?: unknown }).DigiSeller,
+            childCount: el.childElementCount,
+            innerHTMLPreview: el.innerHTML.slice(0, 300),
+          });
           setStatus((s) => (s === "ready" ? s : "error"));
         }, RENDER_TIMEOUT);
-      } catch {
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(LOG, "ensureDigisellerScript failed", { productId, sellerId, err: String(err) });
         if (!cancelled) setStatus("error");
       }
     };
