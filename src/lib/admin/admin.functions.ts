@@ -104,7 +104,7 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
       .eq("key", "partner_ai")
       .maybeSingle();
     const partnerAi = ai?.value ?? "";
-    const links = buildPartnerLinks(data.digiseller_id, partnerAi);
+    const links = buildPartnerLinks(data.digiseller_id, partnerAi, data.slug);
     const row = {
       slug: data.slug,
       title: data.title,
