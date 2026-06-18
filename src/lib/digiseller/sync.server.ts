@@ -215,12 +215,12 @@ async function enqueuePlatiIds(db: DB, ids: string[], sourceProductId: string | 
 /** Replace any plati.market product URLs in `text` with internal /product/<slug>
  *  links for products that already exist in our DB. Leaves unknown ids untouched
  *  (they should be enqueued separately and rewritten on a later pass). */
-export async function rewritePlatiLinksToInternal(text: string): Promise<string> {
+export async function rewritePlatiLinksToInternal(text: string, providedDb?: DB): Promise<string> {
   if (!text) return text;
   const ids = extractPlatiItemIds(text);
   if (ids.length === 0) return text;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
+  const db = await resolveDb(providedDb);
+  const { data } = await db
     .from("products")
     .select("digiseller_id, slug")
     .in("digiseller_id", ids);
@@ -241,9 +241,9 @@ export async function rewritePlatiLinksToInternal(text: string): Promise<string>
 /** After a product is (re)imported, walk other products whose description
  *  still contains an external plati.market link to this digiseller_id and
  *  rewrite those links to internal /product/<slug> URLs. */
-export async function refreshBacklinksFor(digisellerId: string): Promise<number> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
+export async function refreshBacklinksFor(digisellerId: string, providedDb?: DB): Promise<number> {
+  const db = await resolveDb(providedDb);
+  const { data } = await db
     .from("products")
     .select("id, description, digiseller_id")
     .ilike("description", `%plati.market/itm/%${digisellerId}%`)
@@ -251,9 +251,9 @@ export async function refreshBacklinksFor(digisellerId: string): Promise<number>
   let updated = 0;
   for (const p of data ?? []) {
     if (p.digiseller_id === digisellerId) continue;
-    const newDesc = await rewritePlatiLinksToInternal(p.description ?? "");
+    const newDesc = await rewritePlatiLinksToInternal(p.description ?? "", db);
     if (newDesc && newDesc !== p.description) {
-      const { error } = await supabaseAdmin
+      const { error } = await db
         .from("products")
         .update({ description: newDesc })
         .eq("id", p.id);
