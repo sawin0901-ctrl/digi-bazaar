@@ -223,9 +223,11 @@ export type Database = {
           keywords_grouped: Json
           last_available_at: string | null
           last_checked_at: string | null
+          last_quality_check_at: string | null
           last_synced_at: string | null
           old_price: number | null
           price: number
+          quality_issues: Json
           rating: number
           reviews: number
           sales: number
@@ -272,9 +274,11 @@ export type Database = {
           keywords_grouped?: Json
           last_available_at?: string | null
           last_checked_at?: string | null
+          last_quality_check_at?: string | null
           last_synced_at?: string | null
           old_price?: number | null
           price?: number
+          quality_issues?: Json
           rating?: number
           reviews?: number
           sales?: number
@@ -321,9 +325,11 @@ export type Database = {
           keywords_grouped?: Json
           last_available_at?: string | null
           last_checked_at?: string | null
+          last_quality_check_at?: string | null
           last_synced_at?: string | null
           old_price?: number | null
           price?: number
+          quality_issues?: Json
           rating?: number
           reviews?: number
           sales?: number

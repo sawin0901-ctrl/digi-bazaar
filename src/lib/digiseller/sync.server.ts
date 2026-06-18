@@ -120,7 +120,87 @@ function extractVideos(pd: NonNullable<ProductDataResp["product"]>): string[] {
 }
 
 function productUrl(id: number): string {
-  return `https://plati.market/itm/${id}?ai=${AGENT_ID}`;
+  // Digiseller payment URL — no plati.market brand exposure on the site.
+  return `https://www.oplata.info/asp2/pay_wm.asp?id_d=${id}&ai=${AGENT_ID}&_ow=0`;
+}
+
+function internalProductUrl(slug: string): string {
+  return `/product/${slug}`;
+}
+
+/** Build slug map for a set of digiseller ids (used by sanitizer). */
+async function buildSlugMap(db: DB, ids: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (ids.length === 0) return map;
+  const { data } = await db
+    .from("products")
+    .select("digiseller_id, slug")
+    .in("digiseller_id", ids);
+  for (const r of data ?? []) {
+    if (r.digiseller_id && r.slug) map.set(r.digiseller_id, r.slug);
+  }
+  return map;
+}
+
+/** Sanitize a product-shaped payload in place: removes plati.market links from
+ *  every text/jsonb field and replaces them with internal URLs. Unknown ids
+ *  are enqueued for import and become `[[PLATI:<id>]]` markers, which are
+ *  rewritten later by `resolveMarkersForProduct`. */
+async function sanitizePayloadInPlace<T extends Record<string, unknown>>(
+  db: DB,
+  payload: T,
+  selfDigisellerId: string | null,
+): Promise<T> {
+  const { sanitizePlatiValue, extractPlatiIdsDeep } = await import("@/lib/quality/sanitize");
+  const ids = extractPlatiIdsDeep(payload).filter((x) => x !== selfDigisellerId);
+  if (ids.length) {
+    try {
+      await enqueuePlatiIds(db, ids, null);
+    } catch (e) {
+      console.error("[sync] enqueue ids from payload failed", e);
+    }
+  }
+  const slugMap = await buildSlugMap(db, ids);
+  const TEXT_FIELDS = [
+    "description",
+    "short_description",
+    "full_description",
+    "instructions",
+    "seo_title",
+    "seo_description",
+    "seo_keywords",
+    "seo_h1",
+  ] as const;
+  const JSON_FIELDS = ["advantages", "features", "faq", "image_meta", "keywords_grouped"] as const;
+  for (const k of TEXT_FIELDS) {
+    if (typeof payload[k] === "string") {
+      (payload as Record<string, unknown>)[k] = sanitizePlatiValue(payload[k] as string, slugMap);
+    }
+  }
+  for (const k of JSON_FIELDS) {
+    if (payload[k] != null) {
+      (payload as Record<string, unknown>)[k] = sanitizePlatiValue(payload[k], slugMap);
+    }
+  }
+  return payload;
+}
+
+/** After a row exists, apply quality gating to decide if it should be public. */
+async function applyQualityGate(
+  db: DB,
+  productId: string,
+  ctx: { title: string; description: string; image: string; price: number; in_stock: boolean },
+): Promise<void> {
+  const { evaluateProduct } = await import("@/lib/quality/sanitize");
+  const verdict = evaluateProduct(ctx);
+  await db
+    .from("products")
+    .update({
+      is_active: verdict.ok,
+      quality_issues: verdict.issues,
+      last_quality_check_at: new Date().toISOString(),
+    })
+    .eq("id", productId);
 }
 
 /** Fetch plati.market product page and extract the top-level catalog
@@ -469,33 +549,50 @@ export async function runDailyImport(providedDb?: DB): Promise<{ imported: numbe
     const description = await generateUniqueDescription(row.name, target.name);
     const price = Math.round(Number(row.price_rur ?? row.price ?? 0));
     const slug = `digi-${row.id_goods}`;
-    const { error } = await db.from("products").upsert(
-      {
+    const image = productImage(row);
+    const payload = await sanitizePayloadInPlace(db, {
         slug,
         title: row.name,
         category_slug: `cat-${target.id}`,
         digiseller_category_id: String(target.id),
-        seller: "plati.market",
+        seller: "GamePlaza",
         seller_rating: 5,
         price,
         old_price: null,
         rating: 5,
         reviews: row.cnt_comment ?? 0,
         sales: row.cnt_sell ?? 0,
-        image: productImage(row),
+        image,
         badge: row.has_discount ? "-%" : null,
         description,
-        details_url: productUrl(row.id_goods),
+        details_url: internalProductUrl(slug),
         buy_url: productUrl(row.id_goods),
         digiseller_id: String(row.id_goods),
-        is_active: true,
+        is_active: false, // gated below by quality check
         in_stock: true,
         last_synced_at: new Date().toISOString(),
-      },
-      { onConflict: "slug" },
-    );
+      } as Record<string, unknown>, String(row.id_goods));
+    const { error } = await db
+      .from("products")
+      .upsert(payload as unknown as Database["public"]["Tables"]["products"]["Insert"], {
+        onConflict: "slug",
+      });
     if (!error) imported++;
     if (!error) {
+      try {
+        const { data: row2 } = await db.from("products").select("id").eq("slug", slug).maybeSingle();
+        if (row2) {
+          await applyQualityGate(db, row2.id, {
+            title: row.name,
+            description: typeof payload.description === "string" ? payload.description : "",
+            image,
+            price,
+            in_stock: true,
+          });
+        }
+      } catch (e) {
+        console.error("[sync] quality gate failed", e);
+      }
       try {
         const { data: row } = await db
           .from("products")
@@ -596,7 +693,7 @@ export async function importDigisellerProductById(
 
   const stats = computeSellerStats(pd);
 
-  const payload = {
+  const payloadRaw = {
       slug: existing?.slug ?? slug,
       title,
       category_slug: catSlug,
@@ -612,13 +709,15 @@ export async function importDigisellerProductById(
       videos,
       badge: null,
       description,
-      details_url: productUrl(Number(digisellerId)),
+      details_url: internalProductUrl(existing?.slug ?? slug),
       buy_url: productUrl(Number(digisellerId)),
       digiseller_id: digisellerId,
-      is_active: true,
+      is_active: false, // gated below by quality check
       in_stock: inStock,
       last_synced_at: new Date().toISOString(),
-    };
+    } as Record<string, unknown>;
+  const payload = (await sanitizePayloadInPlace(db, payloadRaw, digisellerId)) as unknown as
+    Database["public"]["Tables"]["products"]["Insert"];
 
   if (existing) {
     const { error } = await db
@@ -629,6 +728,27 @@ export async function importDigisellerProductById(
   } else {
     const { error } = await db.from("products").insert(payload);
     if (error) throw new Error(error.message);
+  }
+
+  // Resolve product id (existing or freshly inserted) and apply quality gating.
+  try {
+    const { data: productRow } = await db
+      .from("products")
+      .select("id")
+      .eq("digiseller_id", digisellerId)
+      .maybeSingle();
+    if (productRow) {
+      const finalDesc = typeof payload.description === "string" ? payload.description : "";
+      await applyQualityGate(db, productRow.id, {
+        title,
+        description: finalDesc,
+        image,
+        price,
+        in_stock: inStock,
+      });
+    }
+  } catch (e) {
+    console.error("[sync] quality gate after import failed", e);
   }
 
   // If the resolved category has no cover image yet, use this product's image
@@ -720,6 +840,14 @@ export async function runDailySync(limit = 100, providedDb?: DB): Promise<{ upda
       if (patch.description) {
         patch.description = await rewritePlatiLinksToInternal(patch.description, db);
       }
+      // Sanitize entire patch (strips any leftover plati.market URLs in all text/jsonb fields)
+      Object.assign(
+        patch,
+        await sanitizePayloadInPlace(db, patch as Record<string, unknown>, p.digiseller_id),
+      );
+      // Force internal/payment URLs
+      patch.details_url = internalProductUrl(p.slug);
+      patch.buy_url = productUrl(Number(p.digiseller_id));
       const imgs = extractImages(pd);
       const vids = extractVideos(pd);
       patch.images = imgs;
@@ -736,6 +864,25 @@ export async function runDailySync(limit = 100, providedDb?: DB): Promise<{ upda
       }
       const { error } = await db.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
+      // Quality gate (re-evaluate against the freshly stored row).
+      try {
+        const { data: cur } = await db
+          .from("products")
+          .select("title,description,image,price,in_stock")
+          .eq("id", p.id)
+          .maybeSingle();
+        if (cur) {
+          await applyQualityGate(db, p.id, {
+            title: cur.title ?? "",
+            description: cur.description ?? "",
+            image: cur.image ?? "",
+            price: cur.price ?? 0,
+            in_stock: cur.in_stock ?? false,
+          });
+        }
+      } catch (e) {
+        console.error("[sync] quality gate (daily) failed", e);
+      }
       // SEO regen if not locked
       try {
         const { data: cur } = await db

@@ -24,6 +24,7 @@ import {
   adminToggleSeoLock,
   adminBulkRegenerateSeo,
 } from "@/lib/seo/seo.functions";
+import { cleanupPlatiLinks, bulkRecheckQuality } from "@/lib/admin/quality.functions";
 import { Trash2, Plus, LogOut, Save, X, Download, Sparkles, Lock, Unlock, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -281,6 +282,7 @@ function AdminPage() {
         />
       )}
       <SeoSection isAdmin={admin.data?.isAdmin === true} />
+      <QualitySection isAdmin={admin.data?.isAdmin === true} />
     </Layout>
   );
 }
@@ -734,6 +736,60 @@ function SeoEditDialog({
               </button>
             </div>
           </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function QualitySection({ isAdmin }: { isAdmin: boolean }) {
+  const cleanupFn = useServerFn(cleanupPlatiLinks);
+  const recheckFn = useServerFn(bulkRecheckQuality);
+  const cleanupMut = useMutation({ mutationFn: () => cleanupFn({ data: { limit: 2000 } }) });
+  const recheckMut = useMutation({ mutationFn: () => recheckFn({ data: { limit: 2000 } }) });
+  if (!isAdmin) return null;
+  return (
+    <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
+      <div className="mt-8 rounded-2xl border border-border p-5">
+        <h2 className="text-xl font-bold">Качество и чистка ссылок</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Удалить любые ссылки на plati.market во всех карточках и перепроверить
+          качество (картинка, цена, наличие, название, описание). Скрытые товары
+          не попадают в каталог, поиск и sitemap.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            onClick={() => cleanupMut.mutate()}
+            disabled={cleanupMut.isPending}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/30 disabled:opacity-50"
+          >
+            <RefreshCw className="h-4 w-4" />
+            {cleanupMut.isPending ? "Чистка…" : "Очистить ссылки plati.market"}
+          </button>
+          <button
+            onClick={() => recheckMut.mutate()}
+            disabled={recheckMut.isPending}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border px-4 py-2 text-sm font-semibold disabled:opacity-50"
+          >
+            <Sparkles className="h-4 w-4" />
+            {recheckMut.isPending ? "Проверка…" : "Перепроверить качество"}
+          </button>
+        </div>
+        {cleanupMut.data && (
+          <p className="mt-3 text-xs text-emerald-500">
+            Очищено: {cleanupMut.data.updated} из {cleanupMut.data.scanned}; в очередь добавлено {cleanupMut.data.enqueued}.
+          </p>
+        )}
+        {recheckMut.data && (
+          <p className="mt-2 text-xs text-emerald-500">
+            Опубликовано: {recheckMut.data.activated} · Скрыто: {recheckMut.data.deactivated} (из {recheckMut.data.scanned})
+          </p>
+        )}
+        {(cleanupMut.error || recheckMut.error) && (
+          <p className="mt-2 text-xs text-rose-500">
+            {(cleanupMut.error as Error | undefined)?.message ??
+              (recheckMut.error as Error | undefined)?.message}
+          </p>
         )}
       </div>
     </div>

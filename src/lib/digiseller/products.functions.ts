@@ -47,7 +47,8 @@ function productImage(row: SellerGoodsRow): string {
 }
 
 function productUrl(id: number): string {
-  return `https://plati.market/itm/${id}?ai=${AGENT_ID}`;
+  // Digiseller payment URL — no plati.market exposure on the site.
+  return `https://www.oplata.info/asp2/pay_wm.asp?id_d=${id}&ai=${AGENT_ID}&_ow=0`;
 }
 
 function mapRow(row: SellerGoodsRow, categorySlug: string): ProductDTO {
@@ -56,7 +57,7 @@ function mapRow(row: SellerGoodsRow, categorySlug: string): ProductDTO {
     slug: `digi-${row.id_goods}`,
     title: row.name,
     category_slug: categorySlug,
-    seller: "plati.market",
+    seller: "GamePlaza",
     seller_rating: 5,
     price,
     old_price: null,
@@ -68,11 +69,11 @@ function mapRow(row: SellerGoodsRow, categorySlug: string): ProductDTO {
     videos: [],
     badge: row.has_discount ? "-%" : null,
     description: "",
-    details_url: productUrl(row.id_goods),
+    details_url: `/product/digi-${row.id_goods}`,
     buy_url: productUrl(row.id_goods),
     digiseller_id: String(row.id_goods),
     variant_label: null,
-    external_url: productUrl(row.id_goods),
+    external_url: `/product/digi-${row.id_goods}`,
   };
 }
 

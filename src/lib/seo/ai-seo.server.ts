@@ -224,6 +224,10 @@ ${imgs.length ? `\nИзображения товара:\n${imgs.map((u, i) => `$
 }
 
 export function seoBundleToProductPatch(b: SeoBundle): ProductUpdate {
+  // Note: callers should run sanitizePayloadInPlace (or equivalent) before
+  // writing this patch to the DB to strip any plati.market links the model
+  // may have hallucinated. We do not run it here because that needs DB access
+  // for slug resolution; doing it at the call site avoids leaking the import.
   return {
     seo_title: b.seo_title,
     seo_description: b.seo_description,
@@ -285,7 +289,22 @@ export async function generateAndSaveSeoForProduct(
     if (!bundle) return { ok: false, reason: "ai failed" };
 
     const patch = seoBundleToProductPatch(bundle);
-    const { error: upErr } = await db.from("products").update(patch).eq("id", row.id);
+    // Sanitize AI-generated fields: remove any plati.market URLs and rewrite
+    // known ones to internal product URLs.
+    const { sanitizePlatiValue, extractPlatiIdsDeep } = await import("@/lib/quality/sanitize");
+    const ids = extractPlatiIdsDeep(patch).filter((x) => x !== row.digiseller_id);
+    const slugMap = new Map<string, string>();
+    if (ids.length) {
+      const { data: refs } = await db
+        .from("products")
+        .select("digiseller_id, slug")
+        .in("digiseller_id", ids);
+      for (const r of refs ?? []) {
+        if (r.digiseller_id && r.slug) slugMap.set(r.digiseller_id, r.slug);
+      }
+    }
+    const cleanPatch = sanitizePlatiValue(patch, slugMap);
+    const { error: upErr } = await db.from("products").update(cleanPatch).eq("id", row.id);
     if (upErr) return { ok: false, reason: upErr.message };
     return { ok: true };
   } catch (e) {

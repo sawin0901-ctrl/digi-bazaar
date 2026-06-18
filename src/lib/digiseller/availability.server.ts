@@ -195,17 +195,35 @@ async function processOne(db: DB, p: ProductRow): Promise<"hidden" | "restored" 
 
   // Available
   if (!p.is_active) {
+    // Re-run quality gate before restoring — товар возвращаем только если
+    // прошёл проверку (есть картинка, цена, название, описание и т.п.).
+    const { data: cur } = await db
+      .from("products")
+      .select("title,description,image,price")
+      .eq("id", p.id)
+      .maybeSingle();
+    const { evaluateProduct } = await import("@/lib/quality/sanitize");
+    const verdict = evaluateProduct({
+      title: cur?.title ?? "",
+      description: cur?.description ?? "",
+      image: cur?.image ?? "",
+      price: cur?.price ?? 0,
+      in_stock: true,
+    });
     await db
       .from("products")
       .update({
-        is_active: true,
+        is_active: verdict.ok,
         in_stock: true,
-        hidden_at: null,
-        hide_reason: null,
+        hidden_at: verdict.ok ? null : p.hidden_at,
+        hide_reason: verdict.ok ? null : "quality_failed",
         last_available_at: now,
         last_checked_at: now,
+        quality_issues: verdict.issues,
+        last_quality_check_at: now,
       })
       .eq("id", p.id);
+    if (!verdict.ok) return "ok";
     await logEvent(db, {
       productId: p.id,
       digisellerId: p.digiseller_id,
