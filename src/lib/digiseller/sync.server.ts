@@ -190,18 +190,17 @@ export function extractPlatiItemIds(text: string | null | undefined): string[] {
 }
 
 /** Enqueue newly seen plati.market item IDs for background auto-import. */
-async function enqueuePlatiIds(ids: string[], sourceProductId: string | null) {
+async function enqueuePlatiIds(db: DB, ids: string[], sourceProductId: string | null) {
   if (ids.length === 0) return;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   // Skip ids that already exist as products
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await db
     .from("products")
     .select("digiseller_id")
     .in("digiseller_id", ids);
   const have = new Set((existing ?? []).map((r) => r.digiseller_id));
   const fresh = ids.filter((id) => !have.has(id));
   if (fresh.length === 0) return;
-  await supabaseAdmin
+  await db
     .from("product_import_queue")
     .upsert(
       fresh.map((id) => ({
