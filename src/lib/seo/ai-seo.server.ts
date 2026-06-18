@@ -224,6 +224,10 @@ ${imgs.length ? `\nИзображения товара:\n${imgs.map((u, i) => `$
 }
 
 export function seoBundleToProductPatch(b: SeoBundle): ProductUpdate {
+  // Note: callers should run sanitizePayloadInPlace (or equivalent) before
+  // writing this patch to the DB to strip any plati.market links the model
+  // may have hallucinated. We do not run it here because that needs DB access
+  // for slug resolution; doing it at the call site avoids leaking the import.
   return {
     seo_title: b.seo_title,
     seo_description: b.seo_description,
