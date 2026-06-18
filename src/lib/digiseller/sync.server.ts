@@ -264,11 +264,11 @@ export async function refreshBacklinksFor(digisellerId: string, providedDb?: DB)
 }
 
 /** Process one queued plati.market item — invoked by hourly cron. */
-export async function processOneFromImportQueue(): Promise<
+export async function processOneFromImportQueue(providedDb?: DB): Promise<
   { processed: false } | { processed: true; digiseller_id: string; ok: boolean; error?: string }
 > {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: row } = await supabaseAdmin
+  const db = await resolveDb(providedDb);
+  const { data: row } = await db
     .from("product_import_queue")
     .select("id, digiseller_id, attempts")
     .eq("status", "pending")
@@ -285,11 +285,11 @@ export async function processOneFromImportQueue(): Promise<
     const { fetchVerdictForId } = await import("./availability.server");
     const verdict = await fetchVerdictForId(row.digiseller_id);
     if (!verdict.available) {
-      await supabaseAdmin
+      await db
         .from("product_import_queue")
         .delete()
         .eq("id", row.id);
-      await supabaseAdmin.from("product_availability_log").insert({
+      await db.from("product_availability_log").insert({
         product_id: null,
         digiseller_id: row.digiseller_id,
         slug: null,
@@ -303,15 +303,15 @@ export async function processOneFromImportQueue(): Promise<
         error: `skipped: ${verdict.reason}`,
       };
     }
-    await importDigisellerProductById(row.digiseller_id, null);
-    await supabaseAdmin
+    await importDigisellerProductById(row.digiseller_id, null, db);
+    await db
       .from("product_import_queue")
       .update({ status: "done", processed_at: new Date().toISOString(), attempts: row.attempts + 1 })
       .eq("id", row.id);
     // Rewrite external plati.market links to this product into internal links
     // across every other card that already references it.
     try {
-      await refreshBacklinksFor(row.digiseller_id);
+      await refreshBacklinksFor(row.digiseller_id, db);
     } catch (e) {
       console.error("[sync] refresh backlinks failed", e);
     }
@@ -319,7 +319,7 @@ export async function processOneFromImportQueue(): Promise<
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     const nextAttempts = row.attempts + 1;
-    await supabaseAdmin
+    await db
       .from("product_import_queue")
       .update({
         status: nextAttempts >= 5 ? "failed" : "pending",
