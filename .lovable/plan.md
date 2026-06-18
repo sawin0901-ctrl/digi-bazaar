@@ -1,78 +1,93 @@
-# План: AI SEO-контент для карточек товаров
+# План: чистка ссылок Plati + контроль качества каталога
 
-## Цель
-После импорта/синхронизации с Digiseller AI автоматически создаёт уникальный SEO-контент для каждой карточки: meta-теги, заголовки, описания, FAQ, alt-тексты, ключевые слова и JSON-LD микроразметку. Админ может перегенерировать, редактировать вручную и блокировать автообновление.
+## 1. Миграция БД
 
-## 1. Расширение схемы БД (миграция)
+Добавить в `public.products`:
+- `is_published boolean not null default false` — единый флаг видимости.
+- `quality_issues jsonb` — массив причин, по которым товар скрыт (для админки).
+- `last_quality_check_at timestamptz`.
 
-Добавить в `public.products` поля:
-- `seo_title`, `seo_description`, `seo_keywords` (text)
-- `seo_h1`, `seo_slug` (text)
-- `short_description` (text) — краткое описание
-- `full_description` (text) — расширенное (заменит/дополнит `description`)
-- `advantages` (jsonb) — массив преимуществ
-- `instructions` (text) — инструкция по использованию
-- `faq` (jsonb) — `[{question, answer}]`
-- `features` (jsonb) — особенности
-- `keywords_grouped` (jsonb) — `{high, mid, low, lsi, commercial, informational}`
-- `image_meta` (jsonb) — `[{url, alt, title, caption}]`
-- `seo_locked` (boolean default false) — блокировка автообновления
-- `seo_score` (int) — рейтинг 0–100
-- `seo_generated_at` (timestamptz)
+Индекс: `create index on products (is_published) where is_published = true`.
 
-## 2. AI-генератор (`src/lib/seo/ai-seo.server.ts`)
+Бэкфилл существующих строк: `is_published = true` для всех, где есть `image`, `price > 0`, `title`, и в `description` нет признаков заглушки — остальные ставим в `false` с заполнением `quality_issues`.
 
-Одна серверная функция `generateProductSeo(product)`:
-- Через Lovable AI Gateway (`google/gemini-3-flash-preview`) с `Output.object` + Zod-схемой возвращает структурированный JSON со всеми полями выше за один вызов.
-- Промпт включает: название, категорию, оригинальное описание Digiseller (как сырьё, не для копирования), URL изображений.
-- Отдельная подзадача — alt/title для каждого изображения (батч в том же ответе).
-- Подсчёт `seo_score` эвристикой (длина title 30–60, description 120–160, наличие H1/FAQ/keywords).
+## 2. Удаление ссылок на plati.market
 
-## 3. Интеграция в импорт/синхронизацию
+### 2.1. На уровне генерации (sync/import)
+В `src/lib/digiseller/sync.server.ts` и `src/lib/digiseller/products.functions.ts`:
+- Убрать формирование `plati.market/itm/{id}?ai=...` для `buy_url`, `details_url`, `external_url`.
+- Кнопка «Купить» (по выбору пользователя) → ссылка на Digiseller-платёж: `https://oplata.info/asp2/pay_wm.asp?id_d={digiseller_id}` (без бренда plati). Это поле `buy_url`.
+- `details_url` / `external_url` → внутренние `/product/{slug}`.
 
-В `src/lib/digiseller/sync.server.ts`:
-- После `upsert` в `importDigisellerProductById` и `runDailySync` — если `seo_locked = false`, вызывать `generateProductSeo` и сохранять результат.
-- Импорт остаётся быстрым: SEO-генерация — fire-and-forget (await, но с try/catch, чтобы ошибка AI не валила импорт).
-- В `runDailyImport` — то же для каждого нового товара.
+### 2.2. Очистка контента (универсальная функция `sanitizePlatiLinks(text)`)
+Регулярка ловит `https?://(www\.)?plati\.market/...` (включая markdown- и HTML-ссылки) и:
+- Если URL содержит `/itm/.../{digisellerId}` — ищем товар в `products` по `digiseller_id`. Найден → заменяем на `https://gameplaza.site/product/{slug}`. Не найден → ставим товар в `product_import_queue` со статусом `pending` и временно заменяем на маркер `[[PLATI:{id}]]`, который второй проход после импорта заменит на внутренний URL.
+- Если URL не содержит распознаваемый `id` — просто удаляем ссылку, оставляя текст.
 
-## 4. Отображение на странице товара (`src/routes/product.$slug.tsx`)
+Применяем `sanitizePlatiLinks` ко всем текстовым полям при сохранении: `description`, `short_description`, `full_description`, `instructions`, `seo_title`, `seo_description`, `seo_keywords`, `faq` (вопрос+ответ), `advantages`, `features`, `image_meta` (alt/title/caption).
 
-- `head()` использует `seo_title`, `seo_description`, `seo_keywords`, JSON-LD (Product, Offer, AggregateRating, FAQPage, BreadcrumbList).
-- H1 = `seo_h1 ?? title`.
-- Новые секции: Краткое описание, Преимущества (список), Особенности, Инструкция, FAQ (accordion).
-- Изображения получают `alt` и `title` из `image_meta`.
+### 2.3. Бэкфилл
+Server function `cleanupPlatiLinks({ limit })` (admin-only): проходит по всем `products`, прогоняет sanitizer, обновляет строки. Кнопка в админке + ручной запуск.
 
-## 5. Админ-панель (`src/routes/_authenticated/admin.tsx`)
+## 3. Контроль качества перед публикацией
 
-Для каждого товара кнопки:
-- **Перегенерировать SEO** — вызывает серверную функцию `regenerateSeo(productId)`.
-- **Редактировать SEO** — модал с полями (title, description, H1, FAQ, advantages).
-- **Заблокировать автообновление** — toggle `seo_locked`.
-- Показ `seo_score` бейджем.
-- Кнопка **Массовая перегенерация** — пройти по всем товарам с `seo_locked=false`.
+Модуль `src/lib/quality/check.server.ts` с функцией `evaluateProduct(product) => { ok, issues[] }`.
 
-## 6. Серверные функции (`src/lib/seo/seo.functions.ts`)
+Правила (товар не публикуется, если хоть одно нарушено):
 
-- `regenerateSeo({ productId })` — admin-only.
-- `updateSeo({ productId, patch })` — ручное редактирование.
-- `toggleSeoLock({ productId, locked })`.
-- `bulkRegenerateSeo({ limit })`.
+**Изображение**
+- `image` не пустое;
+- URL отвечает 200, content-type начинается с `image/`;
+- размер ≥ 200×200 px (через HEAD + потоковое чтение первых байт sharp-free парсером дименсий);
+- URL не содержит признаков заглушки (`placeholder`, `no-image`, `noimage`, `default`).
 
-Все защищены `requireSupabaseAuth` + проверкой роли `admin` через `has_role`.
+**Цена**: `price > 0`, число, не NaN.
 
-## 7. SEO URL (slug)
+**Наличие**: `availability !== 'out_of_stock'`, `in_stock !== false` (по последнему `product_availability_log`).
 
-Текущий slug = `digi-{id}`. Добавить `seo_slug` (человекочитаемый, транслит названия) — опционально как редирект; основной роутинг оставить по `slug`, чтобы не ломать существующие ссылки. AI генерирует `seo_slug` для будущего использования / canonical.
+**Название**: длина ≥ 5 символов, есть хотя бы одно слово из 3+ букв, не состоит из 80%+ цифр/спецсимволов.
+
+**Описание**: длина ≥ 100 символов после удаления HTML и ссылок; не состоит на 90%+ из URL.
+
+Итог: при `ok=true` ставим `is_published=true`, иначе `false` и записываем `quality_issues`.
+
+Интеграция:
+- `importDigisellerProductById` → после upsert вызывает `evaluateProduct` и проставляет `is_published`.
+- `runDailySync`, `processOneFromImportQueue` — то же самое.
+- `runFullAvailabilityCheck` — при смене наличия обновляет `is_published` (см. п.4).
+
+## 4. Авто-скрытие и восстановление
+
+Расширить `src/lib/digiseller/availability.server.ts`:
+- При обнаружении «нет в наличии / заблокирован / удалён» → `is_published=false`, добавить `quality_issues: ["unavailable"]`.
+- При возвращении товара в наличии → перезапустить `evaluateProduct`; если все проверки пройдены → `is_published=true`.
+
+## 5. Фильтрация по `is_published`
+
+Везде, где читаются товары для публичных страниц, добавить `.eq('is_published', true)`:
+- `src/lib/marketplace/catalog.functions.ts` — листинг, поиск, рекомендации.
+- `src/routes/product.$slug.tsx` loader — если `is_published=false` → `throw notFound()` (404).
+- `src/routes/sitemap[.]xml.ts` — выборка товаров для sitemap.
+- `listDigisellerProducts` (если используется на публичных страницах) — фильтр после маппинга через локальную проверку.
+
+В админке (`/admin`) — наоборот, показывать скрытые с бейджем причины (`quality_issues`).
+
+## 6. Админка
+
+- Колонка «Статус» (Published / Hidden + причины).
+- Кнопка «Перепроверить качество» (per-item) и «Массовая перепроверка».
+- Кнопка «Очистить ссылки Plati» (вызывает `cleanupPlatiLinks`).
+- Возможность вручную поставить `is_published=true` (override) — но при следующей проверке наличия снова применится автоматика.
 
 ## Технические детали
 
-- **Модель**: `google/gemini-3-flash-preview` через существующий паттерн (как в `generateUniqueDescription`).
-- **Schema** через Zod + `Output.object` (компактная, без длинных enum).
-- **Уникальность**: в промпт добавляется `productId` + временной seed, температура 0.9.
-- **Fallback**: если AI вернул ошибку — оставляем существующие поля, ставим `seo_score = 0`, лог в консоль.
-- **Микроразметка**: рендерится в `head().scripts` в route файле.
+- Sanitizer и quality-checker лежат в `src/lib/quality/` (server-only, `.server.ts`).
+- Серверные функции в `*.functions.ts` под `requireSupabaseAuth` + `has_role('admin')`.
+- Для проверки размеров изображений — использовать `image-size` (npm, без нативных бинарей) или ручной парсер JPEG/PNG/WebP заголовков; ставить таймаут 5с, при ошибке считать «изображение битое».
+- Все обновления товаров пишут `last_quality_check_at = now()`.
+- В UI карточек (`ProductCard`, страница товара) убрать любые fallback на `plati.market` — `digiseller_id` остаётся в БД, но не показывается ссылкой.
 
 ## Что НЕ входит
-- Реальная проверка уникальности через внешний антиплагиат (только за счёт температуры и индивидуальных промптов).
-- Парсинг частотности из Wordstat/Google (AI генерирует кандидатов на основе своих знаний).
-- Автогенерация новых изображений.
+- Внутренний checkout/корзина на GamePlaza (по ответу пользователя — оставляем покупку через Digiseller).
+- Удаление товаров из БД (только скрытие).
+- AI-перегенерация описаний при чистке ссылок (это уже делает существующая SEO-логика отдельно).
