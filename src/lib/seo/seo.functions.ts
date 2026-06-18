@@ -60,7 +60,7 @@ export const adminRegenerateSeo = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
-    return await generateAndSaveSeoForProduct(data.productId, { force: true });
+    return await generateAndSaveSeoForProduct(data.productId, { force: true }, context.supabase);
   });
 
 export const adminUpdateSeo = createServerFn({ method: "POST" })
@@ -118,7 +118,7 @@ export const adminBulkRegenerateSeo = createServerFn({ method: "POST" })
     let ok = 0;
     let fail = 0;
     for (const r of rows ?? []) {
-      const res = await generateAndSaveSeoForProduct(r.id);
+      const res = await generateAndSaveSeoForProduct(r.id, undefined, context.supabase);
       if (res.ok) ok++; else fail++;
     }
     return { processed: rows?.length ?? 0, ok, fail };

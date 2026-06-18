@@ -251,6 +251,6 @@ export const adminImportDigisellerProduct = createServerFn({ method: "POST" })
     if (!/^\d+$/.test(id)) throw new Error("Некорректный ID товара");
 
     const { importDigisellerProductById } = await import("@/lib/digiseller/sync.server");
-    const result = await importDigisellerProductById(id, data.categorySlug ?? null);
+    const result = await importDigisellerProductById(id, data.categorySlug ?? null, context.supabase);
     return result;
   });
