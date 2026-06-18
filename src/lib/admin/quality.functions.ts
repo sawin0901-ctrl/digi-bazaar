@@ -92,7 +92,10 @@ export const cleanupPlatiLinks = createServerFn({ method: "POST" })
         if (r.buy_url !== wantBuy) patch.buy_url = wantBuy;
       }
       if (Object.keys(patch).length > 0) {
-        const { error } = await db.from("products").update(patch).eq("id", r.id);
+        const { error } = await db
+          .from("products")
+          .update(patch as never)
+          .eq("id", r.id);
         if (!error) updated++;
       }
     }
