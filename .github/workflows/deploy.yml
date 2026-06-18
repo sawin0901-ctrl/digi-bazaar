@@ -87,7 +87,7 @@ jobs:
             . ./.env
             set +a
             pm2 delete gameplaza || true
-            pm2 start dist/server/index.mjs --name gameplaza -i 2 --update-env
+            pm2 start dist/server/server.js --name gameplaza -i 2 --update-env
             pm2 save
 
             echo "==> Deployment complete!"
