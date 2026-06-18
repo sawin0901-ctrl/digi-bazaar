@@ -409,8 +409,8 @@ function flattenCategories(nodes: CategoryNode[] | undefined, out: Array<{ id: n
   return out;
 }
 
-export async function runDailyImport(): Promise<{ imported: number; skipped: number; category: string }> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+export async function runDailyImport(providedDb?: DB): Promise<{ imported: number; skipped: number; category: string }> {
+  const db = await resolveDb(providedDb);
   const id_seller = Number(getSellerId());
 
   // 1. Get categories, upsert into DB and pick a random one with goods
