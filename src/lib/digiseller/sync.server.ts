@@ -120,7 +120,87 @@ function extractVideos(pd: NonNullable<ProductDataResp["product"]>): string[] {
 }
 
 function productUrl(id: number): string {
-  return `https://plati.market/itm/${id}?ai=${AGENT_ID}`;
+  // Digiseller payment URL — no plati.market brand exposure on the site.
+  return `https://www.oplata.info/asp2/pay_wm.asp?id_d=${id}&ai=${AGENT_ID}&_ow=0`;
+}
+
+function internalProductUrl(slug: string): string {
+  return `/product/${slug}`;
+}
+
+/** Build slug map for a set of digiseller ids (used by sanitizer). */
+async function buildSlugMap(db: DB, ids: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (ids.length === 0) return map;
+  const { data } = await db
+    .from("products")
+    .select("digiseller_id, slug")
+    .in("digiseller_id", ids);
+  for (const r of data ?? []) {
+    if (r.digiseller_id && r.slug) map.set(r.digiseller_id, r.slug);
+  }
+  return map;
+}
+
+/** Sanitize a product-shaped payload in place: removes plati.market links from
+ *  every text/jsonb field and replaces them with internal URLs. Unknown ids
+ *  are enqueued for import and become `[[PLATI:<id>]]` markers, which are
+ *  rewritten later by `resolveMarkersForProduct`. */
+async function sanitizePayloadInPlace<T extends Record<string, unknown>>(
+  db: DB,
+  payload: T,
+  selfDigisellerId: string | null,
+): Promise<T> {
+  const { sanitizePlatiValue, extractPlatiIdsDeep } = await import("@/lib/quality/sanitize");
+  const ids = extractPlatiIdsDeep(payload).filter((x) => x !== selfDigisellerId);
+  if (ids.length) {
+    try {
+      await enqueuePlatiIds(db, ids, null);
+    } catch (e) {
+      console.error("[sync] enqueue ids from payload failed", e);
+    }
+  }
+  const slugMap = await buildSlugMap(db, ids);
+  const TEXT_FIELDS = [
+    "description",
+    "short_description",
+    "full_description",
+    "instructions",
+    "seo_title",
+    "seo_description",
+    "seo_keywords",
+    "seo_h1",
+  ] as const;
+  const JSON_FIELDS = ["advantages", "features", "faq", "image_meta", "keywords_grouped"] as const;
+  for (const k of TEXT_FIELDS) {
+    if (typeof payload[k] === "string") {
+      (payload as Record<string, unknown>)[k] = sanitizePlatiValue(payload[k] as string, slugMap);
+    }
+  }
+  for (const k of JSON_FIELDS) {
+    if (payload[k] != null) {
+      (payload as Record<string, unknown>)[k] = sanitizePlatiValue(payload[k], slugMap);
+    }
+  }
+  return payload;
+}
+
+/** After a row exists, apply quality gating to decide if it should be public. */
+async function applyQualityGate(
+  db: DB,
+  productId: string,
+  ctx: { title: string; description: string; image: string; price: number; in_stock: boolean },
+): Promise<void> {
+  const { evaluateProduct } = await import("@/lib/quality/sanitize");
+  const verdict = evaluateProduct(ctx);
+  await db
+    .from("products")
+    .update({
+      is_active: verdict.ok,
+      quality_issues: verdict.issues,
+      last_quality_check_at: new Date().toISOString(),
+    })
+    .eq("id", productId);
 }
 
 /** Fetch plati.market product page and extract the top-level catalog
