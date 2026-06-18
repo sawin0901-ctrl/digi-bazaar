@@ -840,6 +840,14 @@ export async function runDailySync(limit = 100, providedDb?: DB): Promise<{ upda
       if (patch.description) {
         patch.description = await rewritePlatiLinksToInternal(patch.description, db);
       }
+      // Sanitize entire patch (strips any leftover plati.market URLs in all text/jsonb fields)
+      Object.assign(
+        patch,
+        await sanitizePayloadInPlace(db, patch as Record<string, unknown>, p.digiseller_id),
+      );
+      // Force internal/payment URLs
+      patch.details_url = internalProductUrl(p.slug);
+      patch.buy_url = productUrl(Number(p.digiseller_id));
       const imgs = extractImages(pd);
       const vids = extractVideos(pd);
       patch.images = imgs;
@@ -856,6 +864,18 @@ export async function runDailySync(limit = 100, providedDb?: DB): Promise<{ upda
       }
       const { error } = await db.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
+      // Quality gate (re-evaluate based on synced data).
+      try {
+        await applyQualityGate(db, p.id, {
+          title: (patch.title as string | undefined) ?? "",
+          description: (patch.description as string | undefined) ?? "",
+          image: (patch.image as string | undefined) ?? "",
+          price: (patch.price as number | undefined) ?? 0,
+          in_stock: (patch.in_stock as boolean | undefined) ?? false,
+        });
+      } catch (e) {
+        console.error("[sync] quality gate (daily) failed", e);
+      }
       // SEO regen if not locked
       try {
         const { data: cur } = await db
