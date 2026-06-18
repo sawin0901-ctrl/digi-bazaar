@@ -572,7 +572,11 @@ export async function runDailyImport(providedDb?: DB): Promise<{ imported: numbe
         in_stock: true,
         last_synced_at: new Date().toISOString(),
       } as Record<string, unknown>, String(row.id_goods));
-    const { error } = await db.from("products").upsert(payload, { onConflict: "slug" });
+    const { error } = await db
+      .from("products")
+      .upsert(payload as unknown as Database["public"]["Tables"]["products"]["Insert"], {
+        onConflict: "slug",
+      });
     if (!error) imported++;
     if (!error) {
       try {
