@@ -1,6 +1,14 @@
 import { digisellerPost, digisellerGet, getSellerId } from "./api.server";
 import type { Database } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 type ProductUpdate = Database["public"]["Tables"]["products"]["Update"];
+type DB = SupabaseClient<Database>;
+
+async function resolveDb(db?: DB): Promise<DB> {
+  if (db) return db;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin as unknown as DB;
+}
 
 const AGENT_ID = "1459731";
 
@@ -139,33 +147,31 @@ async function fetchPlatiTopCategory(itemId: string): Promise<{ slug: string; na
   }
 }
 
-async function ensureCategoryRow(slug: string, name: string) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+async function ensureCategoryRow(db: DB, slug: string, name: string) {
   // Insert only when missing; don't clobber name/image/sort_order if a curated
   // row already exists for this slug.
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await db
     .from("categories")
     .select("slug")
     .eq("slug", slug)
     .maybeSingle();
   if (!existing) {
-    await supabaseAdmin
+    await db
       .from("categories")
       .insert({ slug, name, is_active: true });
   }
 }
 
 /** Backfill category.image from a product image if the category has none yet. */
-async function ensureCategoryImage(slug: string, image: string | null) {
+async function ensureCategoryImage(db: DB, slug: string, image: string | null) {
   if (!image) return;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: cat } = await supabaseAdmin
+  const { data: cat } = await db
     .from("categories")
     .select("slug,image")
     .eq("slug", slug)
     .maybeSingle();
   if (cat && !cat.image) {
-    await supabaseAdmin.from("categories").update({ image }).eq("slug", slug);
+    await db.from("categories").update({ image }).eq("slug", slug);
   }
 }
 
@@ -184,18 +190,17 @@ export function extractPlatiItemIds(text: string | null | undefined): string[] {
 }
 
 /** Enqueue newly seen plati.market item IDs for background auto-import. */
-async function enqueuePlatiIds(ids: string[], sourceProductId: string | null) {
+async function enqueuePlatiIds(db: DB, ids: string[], sourceProductId: string | null) {
   if (ids.length === 0) return;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   // Skip ids that already exist as products
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await db
     .from("products")
     .select("digiseller_id")
     .in("digiseller_id", ids);
   const have = new Set((existing ?? []).map((r) => r.digiseller_id));
   const fresh = ids.filter((id) => !have.has(id));
   if (fresh.length === 0) return;
-  await supabaseAdmin
+  await db
     .from("product_import_queue")
     .upsert(
       fresh.map((id) => ({
@@ -210,12 +215,12 @@ async function enqueuePlatiIds(ids: string[], sourceProductId: string | null) {
 /** Replace any plati.market product URLs in `text` with internal /product/<slug>
  *  links for products that already exist in our DB. Leaves unknown ids untouched
  *  (they should be enqueued separately and rewritten on a later pass). */
-export async function rewritePlatiLinksToInternal(text: string): Promise<string> {
+export async function rewritePlatiLinksToInternal(text: string, providedDb?: DB): Promise<string> {
   if (!text) return text;
   const ids = extractPlatiItemIds(text);
   if (ids.length === 0) return text;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
+  const db = await resolveDb(providedDb);
+  const { data } = await db
     .from("products")
     .select("digiseller_id, slug")
     .in("digiseller_id", ids);
@@ -236,9 +241,9 @@ export async function rewritePlatiLinksToInternal(text: string): Promise<string>
 /** After a product is (re)imported, walk other products whose description
  *  still contains an external plati.market link to this digiseller_id and
  *  rewrite those links to internal /product/<slug> URLs. */
-export async function refreshBacklinksFor(digisellerId: string): Promise<number> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
+export async function refreshBacklinksFor(digisellerId: string, providedDb?: DB): Promise<number> {
+  const db = await resolveDb(providedDb);
+  const { data } = await db
     .from("products")
     .select("id, description, digiseller_id")
     .ilike("description", `%plati.market/itm/%${digisellerId}%`)
@@ -246,9 +251,9 @@ export async function refreshBacklinksFor(digisellerId: string): Promise<number>
   let updated = 0;
   for (const p of data ?? []) {
     if (p.digiseller_id === digisellerId) continue;
-    const newDesc = await rewritePlatiLinksToInternal(p.description ?? "");
+    const newDesc = await rewritePlatiLinksToInternal(p.description ?? "", db);
     if (newDesc && newDesc !== p.description) {
-      const { error } = await supabaseAdmin
+      const { error } = await db
         .from("products")
         .update({ description: newDesc })
         .eq("id", p.id);
@@ -259,11 +264,11 @@ export async function refreshBacklinksFor(digisellerId: string): Promise<number>
 }
 
 /** Process one queued plati.market item — invoked by hourly cron. */
-export async function processOneFromImportQueue(): Promise<
+export async function processOneFromImportQueue(providedDb?: DB): Promise<
   { processed: false } | { processed: true; digiseller_id: string; ok: boolean; error?: string }
 > {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: row } = await supabaseAdmin
+  const db = await resolveDb(providedDb);
+  const { data: row } = await db
     .from("product_import_queue")
     .select("id, digiseller_id, attempts")
     .eq("status", "pending")
@@ -280,11 +285,11 @@ export async function processOneFromImportQueue(): Promise<
     const { fetchVerdictForId } = await import("./availability.server");
     const verdict = await fetchVerdictForId(row.digiseller_id);
     if (!verdict.available) {
-      await supabaseAdmin
+      await db
         .from("product_import_queue")
         .delete()
         .eq("id", row.id);
-      await supabaseAdmin.from("product_availability_log").insert({
+      await db.from("product_availability_log").insert({
         product_id: null,
         digiseller_id: row.digiseller_id,
         slug: null,
@@ -298,15 +303,15 @@ export async function processOneFromImportQueue(): Promise<
         error: `skipped: ${verdict.reason}`,
       };
     }
-    await importDigisellerProductById(row.digiseller_id, null);
-    await supabaseAdmin
+    await importDigisellerProductById(row.digiseller_id, null, db);
+    await db
       .from("product_import_queue")
       .update({ status: "done", processed_at: new Date().toISOString(), attempts: row.attempts + 1 })
       .eq("id", row.id);
     // Rewrite external plati.market links to this product into internal links
     // across every other card that already references it.
     try {
-      await refreshBacklinksFor(row.digiseller_id);
+      await refreshBacklinksFor(row.digiseller_id, db);
     } catch (e) {
       console.error("[sync] refresh backlinks failed", e);
     }
@@ -314,7 +319,7 @@ export async function processOneFromImportQueue(): Promise<
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     const nextAttempts = row.attempts + 1;
-    await supabaseAdmin
+    await db
       .from("product_import_queue")
       .update({
         status: nextAttempts >= 5 ? "failed" : "pending",
@@ -404,8 +409,8 @@ function flattenCategories(nodes: CategoryNode[] | undefined, out: Array<{ id: n
   return out;
 }
 
-export async function runDailyImport(): Promise<{ imported: number; skipped: number; category: string }> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+export async function runDailyImport(providedDb?: DB): Promise<{ imported: number; skipped: number; category: string }> {
+  const db = await resolveDb(providedDb);
   const id_seller = Number(getSellerId());
 
   // 1. Get categories, upsert into DB and pick a random one with goods
@@ -415,7 +420,7 @@ export async function runDailyImport(): Promise<{ imported: number; skipped: num
   if (flat.length === 0) throw new Error("no categories");
 
   // upsert categories
-  await supabaseAdmin.from("categories").upsert(
+  await db.from("categories").upsert(
     flat.map((c, i) => ({
       slug: `cat-${c.id}`,
       name: c.name,
@@ -447,11 +452,11 @@ export async function runDailyImport(): Promise<{ imported: number; skipped: num
 
   // 3. Skip rows already imported
   const ids = allRows.map((r) => String(r.id_goods));
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await db
     .from("products")
     .select("digiseller_id")
     .in("digiseller_id", ids);
-  const existingIds = new Set((existing ?? []).map((e) => e.digiseller_id));
+  const existingIds = new Set((existing ?? []).map((e: { digiseller_id: string | null }) => e.digiseller_id));
   const fresh = allRows.filter((r) => !existingIds.has(String(r.id_goods)));
 
   // 4. Pick random 25-40
@@ -464,7 +469,7 @@ export async function runDailyImport(): Promise<{ imported: number; skipped: num
     const description = await generateUniqueDescription(row.name, target.name);
     const price = Math.round(Number(row.price_rur ?? row.price ?? 0));
     const slug = `digi-${row.id_goods}`;
-    const { error } = await supabaseAdmin.from("products").upsert(
+    const { error } = await db.from("products").upsert(
       {
         slug,
         title: row.name,
@@ -492,14 +497,14 @@ export async function runDailyImport(): Promise<{ imported: number; skipped: num
     if (!error) imported++;
     if (!error) {
       try {
-        const { data: row } = await supabaseAdmin
+        const { data: row } = await db
           .from("products")
           .select("id,seo_locked")
           .eq("slug", slug)
           .maybeSingle();
         if (row && !row.seo_locked) {
           const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
-          await generateAndSaveSeoForProduct(row.id);
+          await generateAndSaveSeoForProduct(row.id, undefined, db);
         }
       } catch (e) {
         console.error("[sync] daily import seo failed", e);
@@ -513,8 +518,9 @@ export async function runDailyImport(): Promise<{ imported: number; skipped: num
 export async function importDigisellerProductById(
   digisellerId: string,
   categorySlug: string | null = null,
+  providedDb?: DB,
 ): Promise<{ ok: true; slug: string; created: boolean }> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const db = await resolveDb(providedDb);
 
   const json = await digisellerGet<ProductDataResp>(
     `/api/products/${encodeURIComponent(digisellerId)}/data?currency=RUR&lang=ru-RU`,
@@ -538,13 +544,13 @@ export async function importDigisellerProductById(
     const platiCat = await fetchPlatiTopCategory(digisellerId);
     if (platiCat) {
       catSlug = platiCat.slug;
-      await ensureCategoryRow(platiCat.slug, platiCat.name);
+      await ensureCategoryRow(db, platiCat.slug, platiCat.name);
     } else {
       catSlug = "cat-imported";
-      await ensureCategoryRow("cat-imported", "Импорт");
+      await ensureCategoryRow(db, "cat-imported", "Импорт");
     }
   } else {
-    await ensureCategoryRow(catSlug, catSlug);
+    await ensureCategoryRow(db, catSlug, catSlug);
   }
 
   // Description: prefer the real product description from plati.market / Digiseller
@@ -563,23 +569,23 @@ export async function importDigisellerProductById(
   // to internal /product/<slug> URLs before saving.
   try {
     const linkedIds = extractPlatiItemIds(description).filter((x) => x !== digisellerId);
-    if (linkedIds.length) await enqueuePlatiIds(linkedIds, null);
+    if (linkedIds.length) await enqueuePlatiIds(db, linkedIds, null);
   } catch (e) {
     console.error("[sync] pre-save enqueue links failed", e);
   }
-  description = await rewritePlatiLinksToInternal(description);
+  description = await rewritePlatiLinksToInternal(description, db);
 
   // Look up existing row by digiseller_id (preferred) or slug to prevent duplicates.
   // If found, UPDATE in place (keep stable id/slug to preserve URLs and inbound links).
   // If not found, INSERT new.
-  const { data: existingByDigi } = await supabaseAdmin
+  const { data: existingByDigi } = await db
     .from("products")
     .select("id, slug")
     .eq("digiseller_id", digisellerId)
     .maybeSingle();
   const { data: existingBySlug } = existingByDigi
     ? { data: null as { id: string; slug: string } | null }
-    : await supabaseAdmin
+    : await db
         .from("products")
         .select("id, slug")
         .eq("slug", slug)
@@ -615,35 +621,35 @@ export async function importDigisellerProductById(
     };
 
   if (existing) {
-    const { error } = await supabaseAdmin
+    const { error } = await db
       .from("products")
       .update(payload)
       .eq("id", existing.id);
     if (error) throw new Error(error.message);
   } else {
-    const { error } = await supabaseAdmin.from("products").insert(payload);
+    const { error } = await db.from("products").insert(payload);
     if (error) throw new Error(error.message);
   }
 
   // If the resolved category has no cover image yet, use this product's image
   // so new auto-created categories aren't blank on the home grid.
-  await ensureCategoryImage(catSlug, image);
+  await ensureCategoryImage(db, catSlug, image);
 
   // Generate SEO in background (don't block import on AI latency/errors)
   try {
-    const { data: row } = await supabaseAdmin
+    const { data: row } = await db
       .from("products")
       .select("id,seo_locked")
       .eq("digiseller_id", digisellerId)
       .maybeSingle();
     if (row && !row.seo_locked) {
       const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
-      await generateAndSaveSeoForProduct(row.id);
+      await generateAndSaveSeoForProduct(row.id, undefined, db);
     }
     // Re-write any external plati.market links pointing to THIS product in
     // other cards' descriptions to internal links now that the row exists.
     try {
-      await refreshBacklinksFor(digisellerId);
+      await refreshBacklinksFor(digisellerId, db);
     } catch (e) {
       console.error("[sync] refresh backlinks failed", e);
     }
@@ -654,11 +660,11 @@ export async function importDigisellerProductById(
   return { ok: true, slug, created: !existing };
 }
 
-export async function runDailySync(limit = 100): Promise<{ updated: number; deactivated: number; checked: number }> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+export async function runDailySync(limit = 100, providedDb?: DB): Promise<{ updated: number; deactivated: number; checked: number }> {
+  const db = await resolveDb(providedDb);
 
   // Oldest synced first (NULLS FIRST), limited batch
-  const { data: rows } = await supabaseAdmin
+  const { data: rows } = await db
     .from("products")
     .select("id, slug, digiseller_id, category_slug")
     .not("digiseller_id", "is", null)
@@ -676,7 +682,7 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
         `/api/products/${encodeURIComponent(p.digiseller_id)}/data?currency=RUR&lang=ru-RU`,
       );
       if (json.retval !== 0 || !json.product) {
-        await supabaseAdmin
+        await db
           .from("products")
           .update({ is_active: false, in_stock: false, last_synced_at: new Date().toISOString() })
           .eq("id", p.id);
@@ -707,12 +713,12 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       // Enqueue unknown linked items, rewrite known ones inline.
       try {
         const linkedIds = extractPlatiItemIds(desc).filter((x) => x !== p.digiseller_id);
-        if (linkedIds.length) await enqueuePlatiIds(linkedIds, p.id);
+        if (linkedIds.length) await enqueuePlatiIds(db, linkedIds, p.id);
       } catch (e) {
         console.error("[sync] enqueue plati links failed", e);
       }
       if (patch.description) {
-        patch.description = await rewritePlatiLinksToInternal(patch.description);
+        patch.description = await rewritePlatiLinksToInternal(patch.description, db);
       }
       const imgs = extractImages(pd);
       const vids = extractVideos(pd);
@@ -724,22 +730,22 @@ export async function runDailySync(limit = 100): Promise<{ updated: number; deac
       if (p.category_slug === "cat-imported") {
         const platiCat = await fetchPlatiTopCategory(p.digiseller_id);
         if (platiCat) {
-          await ensureCategoryRow(platiCat.slug, platiCat.name);
+          await ensureCategoryRow(db, platiCat.slug, platiCat.name);
           patch.category_slug = platiCat.slug;
         }
       }
-      const { error } = await supabaseAdmin.from("products").update(patch).eq("id", p.id);
+      const { error } = await db.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
       // SEO regen if not locked
       try {
-        const { data: cur } = await supabaseAdmin
+        const { data: cur } = await db
           .from("products")
           .select("seo_locked")
           .eq("id", p.id)
           .maybeSingle();
         if (cur && !cur.seo_locked) {
           const { generateAndSaveSeoForProduct } = await import("@/lib/seo/ai-seo.server");
-          await generateAndSaveSeoForProduct(p.id);
+          await generateAndSaveSeoForProduct(p.id, undefined, db);
         }
       } catch (e) {
         console.error("[sync] seo regen failed", e);

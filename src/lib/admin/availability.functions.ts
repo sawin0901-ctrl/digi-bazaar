@@ -82,5 +82,5 @@ export const adminRunAvailabilityNow = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { runFullAvailabilityCheck } = await import("@/lib/digiseller/availability.server");
-    return runFullAvailabilityCheck();
+    return runFullAvailabilityCheck(context.supabase);
   });

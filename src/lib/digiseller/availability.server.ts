@@ -1,4 +1,14 @@
 import { digisellerGet } from "./api.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+
+type DB = SupabaseClient<Database>;
+
+async function resolveDb(db?: DB): Promise<DB> {
+  if (db) return db;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin as unknown as DB;
+}
 
 /**
  * Auto-availability system for Digiseller products.
@@ -134,15 +144,14 @@ type ProductRow = {
   hidden_at: string | null;
 };
 
-async function logEvent(opts: {
+async function logEvent(db: DB, opts: {
   productId: string | null;
   digisellerId: string | null;
   slug: string | null;
   event: "hidden" | "restored" | "deleted" | "checked";
   reason?: string | null;
 }) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  await supabaseAdmin.from("product_availability_log").insert({
+  await db.from("product_availability_log").insert({
     product_id: opts.productId,
     digiseller_id: opts.digisellerId,
     slug: opts.slug,
@@ -151,15 +160,14 @@ async function logEvent(opts: {
   });
 }
 
-async function processOne(p: ProductRow): Promise<"hidden" | "restored" | "ok" | "skip"> {
+async function processOne(db: DB, p: ProductRow): Promise<"hidden" | "restored" | "ok" | "skip"> {
   if (!p.digiseller_id) return "skip";
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const verdict = await fetchVerdict(p.digiseller_id);
   const now = new Date().toISOString();
 
   if (!verdict.available) {
     if (p.is_active || !p.hidden_at) {
-      await supabaseAdmin
+      await db
         .from("products")
         .update({
           is_active: false,
@@ -169,7 +177,7 @@ async function processOne(p: ProductRow): Promise<"hidden" | "restored" | "ok" |
           last_checked_at: now,
         })
         .eq("id", p.id);
-      await logEvent({
+      await logEvent(db, {
         productId: p.id,
         digisellerId: p.digiseller_id,
         slug: p.slug,
@@ -178,7 +186,7 @@ async function processOne(p: ProductRow): Promise<"hidden" | "restored" | "ok" |
       });
       return "hidden";
     }
-    await supabaseAdmin
+    await db
       .from("products")
       .update({ last_checked_at: now, hide_reason: verdict.reason })
       .eq("id", p.id);
@@ -187,7 +195,7 @@ async function processOne(p: ProductRow): Promise<"hidden" | "restored" | "ok" |
 
   // Available
   if (!p.is_active) {
-    await supabaseAdmin
+    await db
       .from("products")
       .update({
         is_active: true,
@@ -198,7 +206,7 @@ async function processOne(p: ProductRow): Promise<"hidden" | "restored" | "ok" |
         last_checked_at: now,
       })
       .eq("id", p.id);
-    await logEvent({
+    await logEvent(db, {
       productId: p.id,
       digisellerId: p.digiseller_id,
       slug: p.slug,
@@ -206,17 +214,17 @@ async function processOne(p: ProductRow): Promise<"hidden" | "restored" | "ok" |
     });
     return "restored";
   }
-  await supabaseAdmin
+  await db
     .from("products")
     .update({ last_available_at: now, last_checked_at: now, in_stock: true })
     .eq("id", p.id);
   return "ok";
 }
 
-export async function checkActiveProducts(limit = 100) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+export async function checkActiveProducts(limit = 100, providedDb?: DB) {
+  const db = await resolveDb(providedDb);
   const cutoff = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(); // 20h
-  const { data: rows } = await supabaseAdmin
+  const { data: rows } = await db
     .from("products")
     .select("id, slug, digiseller_id, is_active, hidden_at, last_checked_at")
     .eq("is_active", true)
@@ -228,17 +236,17 @@ export async function checkActiveProducts(limit = 100) {
   const counts = { checked: 0, hidden: 0, restored: 0 };
   for (const r of rows ?? []) {
     counts.checked++;
-    const res = await processOne(r as ProductRow);
+    const res = await processOne(db, r as ProductRow);
     if (res === "hidden") counts.hidden++;
     if (res === "restored") counts.restored++;
   }
   return counts;
 }
 
-export async function checkHiddenProducts(limit = 100) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+export async function checkHiddenProducts(limit = 100, providedDb?: DB) {
+  const db = await resolveDb(providedDb);
   const cutoff = new Date(Date.now() - HIDDEN_RECHECK_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const { data: rows } = await supabaseAdmin
+  const { data: rows } = await db
     .from("products")
     .select("id, slug, digiseller_id, is_active, hidden_at, last_checked_at")
     .eq("is_active", false)
@@ -250,17 +258,17 @@ export async function checkHiddenProducts(limit = 100) {
   const counts = { checked: 0, hidden: 0, restored: 0 };
   for (const r of rows ?? []) {
     counts.checked++;
-    const res = await processOne(r as ProductRow);
+    const res = await processOne(db, r as ProductRow);
     if (res === "hidden") counts.hidden++;
     if (res === "restored") counts.restored++;
   }
   return counts;
 }
 
-export async function purgeStaleHidden() {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+export async function purgeStaleHidden(providedDb?: DB) {
+  const db = await resolveDb(providedDb);
   const cutoff = new Date(Date.now() - HIDE_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const { data: rows } = await supabaseAdmin
+  const { data: rows } = await db
     .from("products")
     .select("id, slug, digiseller_id, hidden_at")
     .eq("is_active", false)
@@ -270,22 +278,23 @@ export async function purgeStaleHidden() {
 
   let deleted = 0;
   for (const r of rows ?? []) {
-    await logEvent({
+    await logEvent(db, {
       productId: null,
       digisellerId: r.digiseller_id,
       slug: r.slug,
       event: "deleted",
       reason: `hidden_more_than_${HIDE_DAYS}_days`,
     });
-    const { error } = await supabaseAdmin.from("products").delete().eq("id", r.id);
+    const { error } = await db.from("products").delete().eq("id", r.id);
     if (!error) deleted++;
   }
   return { deleted };
 }
 
-export async function runFullAvailabilityCheck() {
-  const active = await checkActiveProducts(150);
-  const hidden = await checkHiddenProducts(150);
-  const purge = await purgeStaleHidden();
+export async function runFullAvailabilityCheck(providedDb?: DB) {
+  const db = await resolveDb(providedDb);
+  const active = await checkActiveProducts(150, db);
+  const hidden = await checkHiddenProducts(150, db);
+  const purge = await purgeStaleHidden(db);
   return { active, hidden, purge };
 }

@@ -1,6 +1,14 @@
 import type { Database } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type ProductUpdate = Database["public"]["Tables"]["products"]["Update"];
+type DB = SupabaseClient<Database>;
+
+async function resolveDb(db?: DB): Promise<DB> {
+  if (db) return db;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin as unknown as DB;
+}
 
 export type SeoInput = {
   productId: string;
@@ -240,10 +248,14 @@ export function seoBundleToProductPatch(b: SeoBundle): ProductUpdate {
  * Errors are swallowed and logged — never throw from this helper, callers
  * (import/sync) must continue.
  */
-export async function generateAndSaveSeoForProduct(productId: string, opts?: { force?: boolean }): Promise<{ ok: boolean; reason?: string }> {
+export async function generateAndSaveSeoForProduct(
+  productId: string,
+  opts?: { force?: boolean },
+  providedDb?: DB,
+): Promise<{ ok: boolean; reason?: string }> {
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
+    const db = await resolveDb(providedDb);
+    const { data: row, error } = await db
       .from("products")
       .select("id,title,category_slug,description,instructions,images,digiseller_id,seo_locked")
       .eq("id", productId)
@@ -253,7 +265,7 @@ export async function generateAndSaveSeoForProduct(productId: string, opts?: { f
 
     let categoryName: string | null = null;
     if (row.category_slug) {
-      const { data: cat } = await supabaseAdmin
+      const { data: cat } = await db
         .from("categories")
         .select("name")
         .eq("slug", row.category_slug)
@@ -273,7 +285,7 @@ export async function generateAndSaveSeoForProduct(productId: string, opts?: { f
     if (!bundle) return { ok: false, reason: "ai failed" };
 
     const patch = seoBundleToProductPatch(bundle);
-    const { error: upErr } = await supabaseAdmin.from("products").update(patch).eq("id", row.id);
+    const { error: upErr } = await db.from("products").update(patch).eq("id", row.id);
     if (upErr) return { ok: false, reason: upErr.message };
     return { ok: true };
   } catch (e) {

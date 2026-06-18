@@ -89,7 +89,7 @@ export const adminRunImportNow = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { processOneFromImportQueue } = await import("@/lib/digiseller/sync.server");
-    return await processOneFromImportQueue();
+    return await processOneFromImportQueue(context.supabase);
   });
 
 export const adminEnqueueImport = createServerFn({ method: "POST" })
