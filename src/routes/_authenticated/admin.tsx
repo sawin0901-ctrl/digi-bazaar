@@ -24,6 +24,7 @@ import {
   adminToggleSeoLock,
   adminBulkRegenerateSeo,
 } from "@/lib/seo/seo.functions";
+import { cleanupPlatiLinks, bulkRecheckQuality } from "@/lib/admin/quality.functions";
 import { Trash2, Plus, LogOut, Save, X, Download, Sparkles, Lock, Unlock, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -281,6 +282,7 @@ function AdminPage() {
         />
       )}
       <SeoSection isAdmin={admin.data?.isAdmin === true} />
+      <QualitySection isAdmin={admin.data?.isAdmin === true} />
     </Layout>
   );
 }
