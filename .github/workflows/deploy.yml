@@ -30,6 +30,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || '22' }}
           script: |
+            set -e
             mkdir -p /var/www/gameplaza
             cat > /var/www/gameplaza/.env << 'EOF'
             NODE_ENV=production
@@ -45,6 +46,10 @@ jobs:
             VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
             VITE_SUPABASE_PROJECT_ID=${{ secrets.SUPABASE_PROJECT_ID }}
             EOF
+            if grep -q '^SUPABASE_SERVICE_ROLE_KEY=$' /var/www/gameplaza/.env; then
+              echo "ERROR: GitHub Secret SUPABASE_SERVICE_ROLE_KEY is empty or missing"
+              exit 1
+            fi
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
@@ -78,10 +83,13 @@ jobs:
             bun run build
 
             echo "==> Restarting PM2..."
+            set -a
+            . ./.env
+            set +a
             if pm2 list | grep -q gameplaza; then
-              pm2 reload gameplaza --update-env
+              pm2 restart gameplaza --update-env
             else
-              pm2 start dist/server/index.mjs --name gameplaza --env-file .env -i 2
+              pm2 start dist/server/index.mjs --name gameplaza -i 2
               pm2 save
             fi
 
