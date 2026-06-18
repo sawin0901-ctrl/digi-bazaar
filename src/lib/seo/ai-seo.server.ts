@@ -289,7 +289,22 @@ export async function generateAndSaveSeoForProduct(
     if (!bundle) return { ok: false, reason: "ai failed" };
 
     const patch = seoBundleToProductPatch(bundle);
-    const { error: upErr } = await db.from("products").update(patch).eq("id", row.id);
+    // Sanitize AI-generated fields: remove any plati.market URLs and rewrite
+    // known ones to internal product URLs.
+    const { sanitizePlatiValue, extractPlatiIdsDeep } = await import("@/lib/quality/sanitize");
+    const ids = extractPlatiIdsDeep(patch).filter((x) => x !== row.digiseller_id);
+    const slugMap = new Map<string, string>();
+    if (ids.length) {
+      const { data: refs } = await db
+        .from("products")
+        .select("digiseller_id, slug")
+        .in("digiseller_id", ids);
+      for (const r of refs ?? []) {
+        if (r.digiseller_id && r.slug) slugMap.set(r.digiseller_id, r.slug);
+      }
+    }
+    const cleanPatch = sanitizePlatiValue(patch, slugMap);
+    const { error: upErr } = await db.from("products").update(cleanPatch).eq("id", row.id);
     if (upErr) return { ok: false, reason: upErr.message };
     return { ok: true };
   } catch (e) {
