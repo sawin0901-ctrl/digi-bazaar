@@ -147,33 +147,31 @@ async function fetchPlatiTopCategory(itemId: string): Promise<{ slug: string; na
   }
 }
 
-async function ensureCategoryRow(slug: string, name: string) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+async function ensureCategoryRow(db: DB, slug: string, name: string) {
   // Insert only when missing; don't clobber name/image/sort_order if a curated
   // row already exists for this slug.
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await db
     .from("categories")
     .select("slug")
     .eq("slug", slug)
     .maybeSingle();
   if (!existing) {
-    await supabaseAdmin
+    await db
       .from("categories")
       .insert({ slug, name, is_active: true });
   }
 }
 
 /** Backfill category.image from a product image if the category has none yet. */
-async function ensureCategoryImage(slug: string, image: string | null) {
+async function ensureCategoryImage(db: DB, slug: string, image: string | null) {
   if (!image) return;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: cat } = await supabaseAdmin
+  const { data: cat } = await db
     .from("categories")
     .select("slug,image")
     .eq("slug", slug)
     .maybeSingle();
   if (cat && !cat.image) {
-    await supabaseAdmin.from("categories").update({ image }).eq("slug", slug);
+    await db.from("categories").update({ image }).eq("slug", slug);
   }
 }
 
