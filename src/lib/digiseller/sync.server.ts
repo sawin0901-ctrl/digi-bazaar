@@ -864,15 +864,22 @@ export async function runDailySync(limit = 100, providedDb?: DB): Promise<{ upda
       }
       const { error } = await db.from("products").update(patch).eq("id", p.id);
       if (!error) updated++;
-      // Quality gate (re-evaluate based on synced data).
+      // Quality gate (re-evaluate against the freshly stored row).
       try {
-        await applyQualityGate(db, p.id, {
-          title: (patch.title as string | undefined) ?? "",
-          description: (patch.description as string | undefined) ?? "",
-          image: (patch.image as string | undefined) ?? "",
-          price: (patch.price as number | undefined) ?? 0,
-          in_stock: (patch.in_stock as boolean | undefined) ?? false,
-        });
+        const { data: cur } = await db
+          .from("products")
+          .select("title,description,image,price,in_stock")
+          .eq("id", p.id)
+          .maybeSingle();
+        if (cur) {
+          await applyQualityGate(db, p.id, {
+            title: cur.title ?? "",
+            description: cur.description ?? "",
+            image: cur.image ?? "",
+            price: cur.price ?? 0,
+            in_stock: cur.in_stock ?? false,
+          });
+        }
       } catch (e) {
         console.error("[sync] quality gate (daily) failed", e);
       }
