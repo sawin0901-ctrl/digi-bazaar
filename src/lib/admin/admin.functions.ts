@@ -84,10 +84,11 @@ export type ProductInput = {
 function buildPartnerLinks(
   digisellerId: string | null | undefined,
   partnerAi: string,
+  slug?: string | null,
 ): { details_url: string | null; buy_url: string | null } {
   if (!digisellerId) return { details_url: null, buy_url: null };
   return {
-    details_url: `https://plati.market/itm/${digisellerId}?ai=${partnerAi}`,
+    details_url: slug ? `/product/${slug}` : null,
     buy_url: `https://www.oplata.info/asp2/pay_wm.asp?id_d=${digisellerId}&ai=${partnerAi}&_ow=0`,
   };
 }
