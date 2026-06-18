@@ -1,6 +1,14 @@
 import { digisellerPost, digisellerGet, getSellerId } from "./api.server";
 import type { Database } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 type ProductUpdate = Database["public"]["Tables"]["products"]["Update"];
+type DB = SupabaseClient<Database>;
+
+async function resolveDb(db?: DB): Promise<DB> {
+  if (db) return db;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin as unknown as DB;
+}
 
 const AGENT_ID = "1459731";
 
