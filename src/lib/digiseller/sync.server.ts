@@ -693,7 +693,7 @@ export async function importDigisellerProductById(
 
   const stats = computeSellerStats(pd);
 
-  const payload = {
+  const payloadRaw = {
       slug: existing?.slug ?? slug,
       title,
       category_slug: catSlug,
@@ -709,13 +709,15 @@ export async function importDigisellerProductById(
       videos,
       badge: null,
       description,
-      details_url: productUrl(Number(digisellerId)),
+      details_url: internalProductUrl(existing?.slug ?? slug),
       buy_url: productUrl(Number(digisellerId)),
       digiseller_id: digisellerId,
-      is_active: true,
+      is_active: false, // gated below by quality check
       in_stock: inStock,
       last_synced_at: new Date().toISOString(),
-    };
+    } as Record<string, unknown>;
+  const payload = (await sanitizePayloadInPlace(db, payloadRaw, digisellerId)) as unknown as
+    Database["public"]["Tables"]["products"]["Insert"];
 
   if (existing) {
     const { error } = await db
@@ -726,6 +728,27 @@ export async function importDigisellerProductById(
   } else {
     const { error } = await db.from("products").insert(payload);
     if (error) throw new Error(error.message);
+  }
+
+  // Resolve product id (existing or freshly inserted) and apply quality gating.
+  try {
+    const { data: productRow } = await db
+      .from("products")
+      .select("id")
+      .eq("digiseller_id", digisellerId)
+      .maybeSingle();
+    if (productRow) {
+      const finalDesc = typeof payload.description === "string" ? payload.description : "";
+      await applyQualityGate(db, productRow.id, {
+        title,
+        description: finalDesc,
+        image,
+        price,
+        in_stock: inStock,
+      });
+    }
+  } catch (e) {
+    console.error("[sync] quality gate after import failed", e);
   }
 
   // If the resolved category has no cover image yet, use this product's image
