@@ -549,33 +549,46 @@ export async function runDailyImport(providedDb?: DB): Promise<{ imported: numbe
     const description = await generateUniqueDescription(row.name, target.name);
     const price = Math.round(Number(row.price_rur ?? row.price ?? 0));
     const slug = `digi-${row.id_goods}`;
-    const { error } = await db.from("products").upsert(
-      {
+    const image = productImage(row);
+    const payload = await sanitizePayloadInPlace(db, {
         slug,
         title: row.name,
         category_slug: `cat-${target.id}`,
         digiseller_category_id: String(target.id),
-        seller: "plati.market",
+        seller: "GamePlaza",
         seller_rating: 5,
         price,
         old_price: null,
         rating: 5,
         reviews: row.cnt_comment ?? 0,
         sales: row.cnt_sell ?? 0,
-        image: productImage(row),
+        image,
         badge: row.has_discount ? "-%" : null,
         description,
-        details_url: productUrl(row.id_goods),
+        details_url: internalProductUrl(slug),
         buy_url: productUrl(row.id_goods),
         digiseller_id: String(row.id_goods),
-        is_active: true,
+        is_active: false, // gated below by quality check
         in_stock: true,
         last_synced_at: new Date().toISOString(),
-      },
-      { onConflict: "slug" },
-    );
+      } as Record<string, unknown>, String(row.id_goods));
+    const { error } = await db.from("products").upsert(payload, { onConflict: "slug" });
     if (!error) imported++;
     if (!error) {
+      try {
+        const { data: row2 } = await db.from("products").select("id").eq("slug", slug).maybeSingle();
+        if (row2) {
+          await applyQualityGate(db, row2.id, {
+            title: row.name,
+            description: typeof payload.description === "string" ? payload.description : "",
+            image,
+            price,
+            in_stock: true,
+          });
+        }
+      } catch (e) {
+        console.error("[sync] quality gate failed", e);
+      }
       try {
         const { data: row } = await db
           .from("products")
